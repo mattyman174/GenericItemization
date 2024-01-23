@@ -139,7 +139,7 @@ Once it is integrated as explained above, you are free to move ahead and add Ite
 
 The Class Layout of the entire Generic Itemization Plugin is displayed below. It shows the relationships between different classes and struct types. As well as how some of their properties relate to one another. It also shows all of the functions available to each class.
 
-![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystem.png)
+![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystemTransparent.png)
 
 You will want to view it in full as a separate window in order to make out its details.
 
