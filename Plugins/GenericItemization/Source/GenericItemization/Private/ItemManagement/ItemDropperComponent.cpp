@@ -15,7 +15,7 @@ UItemDropperComponent::UItemDropperComponent()
 	ContextProviderFunction = UItemInstancingContextFunction::StaticClass();
 }
 
-bool UItemDropperComponent::DropItems_Implementation(const FInstancedStruct& UserContextData, TArray<AItemDrop*>& ItemDrops, bool bDeferredSpawn /*= false*/)
+bool UItemDropperComponent::DropItems_Implementation(FInstancedStruct UserContextData, TArray<AItemDrop*>& ItemDrops)
 {
 	if (!IsValid(ItemDropClass) || !IsValid(ContextProviderFunction))
 	{
@@ -58,18 +58,9 @@ bool UItemDropperComponent::DropItems_Implementation(const FInstancedStruct& Use
 			{
 				AItemDrop* ItemDrop = nullptr;
 				const FTransform SpawnTransform = FTransform(GetOwner()->GetActorRotation(), GetOwner()->GetActorLocation());
-				if (bDeferredSpawn)
-				{
-					ItemDrop = GetWorld()->SpawnActorDeferred<AItemDrop>(ItemDropClass, SpawnTransform, GetOwner(), nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-					ItemDrop->ItemInstance.InitializeAsScriptStruct(ItemInstance.GetScriptStruct(), ItemInstance.GetMemory());
-					// @NOTE: We are not calling UGameplayStatics::FinishSpawningActor here as we are deferring that for the calling code to manage.
-				}
-				else
-				{
-					ItemDrop = GetWorld()->SpawnActorDeferred<AItemDrop>(ItemDropClass, SpawnTransform, GetOwner(), nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-					ItemDrop->ItemInstance.InitializeAsScriptStruct(ItemInstance.GetScriptStruct(), ItemInstance.GetMemory());
-					UGameplayStatics::FinishSpawningActor(ItemDrop, SpawnTransform);
-				}
+				ItemDrop = GetWorld()->SpawnActorDeferred<AItemDrop>(ItemDropClass, SpawnTransform, GetOwner(), nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+				ItemDrop->ItemInstance.InitializeAsScriptStruct(ItemInstance.GetScriptStruct(), ItemInstance.GetMemory());
+				UGameplayStatics::FinishSpawningActor(ItemDrop, SpawnTransform);
 
 				// Pass out the new ItemDrop.
 				if (IsValid(ItemDrop))

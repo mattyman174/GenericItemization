@@ -28,10 +28,9 @@ public:
 	 * 
 	 * @param UserContextData		Arbitrary data that you may want to pack with useful information to pass through during the Item Instancing Process and for access to other external systems.
 	 * @param ItemDrops				All of the ItemDrop Actors that were produced for ItemInstances that were generated from the DropTable.
-	 * @param bDeferredSpawn		Whether or not to use deferred spawning on the ItemDrops or immediate. Deferred allows you to manipulate them (such as setting their Transforms) prior to final spawning, you must manually call UGameplayStatics::FinishSpawningActor.
 	 */
-	UFUNCTION(BlueprintNativeEvent)
-	bool DropItems(const FInstancedStruct& UserContextData, TArray<AItemDrop*>& ItemDrops, bool bDeferredSpawn = false);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Generic Itemization")
+	bool DropItems(FInstancedStruct UserContextData, TArray<AItemDrop*>& ItemDrops);
 
 protected:
 

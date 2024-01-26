@@ -203,7 +203,6 @@ bool UAffixPickFunction::PickAffix_Implementation(const FInstancedStruct& ItemIn
 	using FAffixPickEntry = FPickEntry<TInstancedStruct<FAffixDefinition>>;
 	TArray<FAffixPickEntry> PickEntries;
 	PickEntries.Reserve(AffixDefinitions.Num());
-
 	for (const TInstancedStruct<FAffixDefinition>& AffixDefinition : AffixDefinitions)
 	{
 		if (AffixDefinition.IsValid())
@@ -265,7 +264,7 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 		return false;
 	}
 
-	if (!AffixPool || AffixPool->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct()))
+	if (!AffixPool || !AffixPool->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct()))
 	{
 		return false;
 	}
@@ -286,28 +285,30 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 			{
 				// =====================================================================================
 				// 1. The ItemDefinition must be of the same or lower QualityLevel for this Affix to be available.
-				if (ItemInstancePtr->ItemDefinition.Get().QualityLevel > AffixDefinition.OccursForQualityLevel)
+				if (AffixDefinition.OccursForQualityLevel > 0 && ItemInstancePtr->ItemDefinition.Get().QualityLevel > AffixDefinition.OccursForQualityLevel)
 				{
 					continue;
 				}
 
 				// =====================================================================================
 				// 2. The AffixLevel of the ItemInstance must be within the range defined on the AffixDefinition.
-				if (ItemInstancePtr->AffixLevel < AffixDefinition.MinimumRequiredItemAffixLevel || ItemInstancePtr->AffixLevel > AffixDefinition.MaximumRequiredItemAffixLevel)
+				if ((AffixDefinition.MinimumRequiredItemAffixLevel > 0 && ItemInstancePtr->AffixLevel < AffixDefinition.MinimumRequiredItemAffixLevel) 
+					|| (AffixDefinition.MaximumRequiredItemAffixLevel > 0 && ItemInstancePtr->AffixLevel > AffixDefinition.MaximumRequiredItemAffixLevel))
 				{
 					continue;
 				}
 
 				// =====================================================================================
 				// 3. Make sure the ItemDefinition is of a valid ItemType to receive this Affix.
-				if (!AffixDefinition.OccursForItemTypes.HasTag(ItemInstancePtr->ItemDefinition.Get().ItemType))
+				const FGameplayTag& ItemType = ItemInstancePtr->ItemDefinition.Get().ItemType;
+				if (ItemType.IsValid() && !ItemType.MatchesAny(AffixDefinition.OccursForItemTypes))
 				{
 					continue;
 				}
 
 				// =====================================================================================
 				// 4. Check to see if the ItemInstance is of the right QualityType to receive this Affix.
-				if (!AffixDefinition.OccursForQualityTypes.HasTag(ItemInstancePtr->QualityType))
+				if (ItemInstancePtr->QualityType.IsValid() && !ItemInstancePtr->QualityType.MatchesAny(AffixDefinition.OccursForQualityTypes))
 				{
 					continue;
 				}
@@ -319,20 +320,20 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 					continue;
 				}
 
-				const bool bHasExistingAffix = AffixDefinitions.ContainsByPredicate([&](const TInstancedStruct<FAffixDefinition>& Other)
-				{
-					if (Other.IsValid())
-					{
-						return AffixDefinition.AffixType.MatchesTag(Other.Get().AffixType);
-					}
-
-					return false;
-				});
-
-				if (!bHasExistingAffix)
-				{
-					continue;
-				}
+// 				const bool bHasExistingAffix = AffixDefinitions.ContainsByPredicate([&](const TInstancedStruct<FAffixDefinition>& Other)
+// 				{
+// 					if (Other.IsValid())
+// 					{
+// 						return AffixDefinition.AffixType.MatchesTag(Other.Get().AffixType);
+// 					}
+// 
+// 					return false;
+// 				});
+// 
+// 				if (bHasExistingAffix)
+// 				{
+// 					continue;
+// 				}
 
 				// Add the Affix to the list of ones we can select from.
 				AffixDefinitions.Add(AffixDefinitionInstance);

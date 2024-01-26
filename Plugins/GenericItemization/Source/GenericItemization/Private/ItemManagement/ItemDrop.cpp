@@ -27,3 +27,19 @@ void AItemDrop::GetItemInstance(TInstancedStruct<FItemInstance>& OutItemInstance
 {
 	OutItemInstance = ItemInstance;
 }
+
+void AItemDrop::GetItemInstanceStruct(FItemInstance& OutItemInstanceStruct) const
+{
+	if (ItemInstance.IsValid())
+	{
+		OutItemInstanceStruct = ItemInstance.Get();
+	}
+}
+
+void AItemDrop::GetItemDefinitionStruct(FItemDefinition& OutItemDefinitionStruct) const
+{
+	if (ItemInstance.IsValid() && ItemInstance.Get().ItemDefinition.IsValid())
+	{
+		OutItemDefinitionStruct = ItemInstance.Get().ItemDefinition.Get();
+	}
+}

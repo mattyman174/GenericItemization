@@ -46,13 +46,13 @@ bool UItemInstancingFunction::CalculateAffixLevel_Implementation(const FInstance
 
 	int32 AffixLevel = MaximumItemLevel;
 
-	if (ItemLevel < (MaximumItemLevel - QualityLevel) / 2)
+	if (ItemLevel < (MaximumItemLevel - QualityLevel / 2))
 	{
-		AffixLevel = (ItemLevel - QualityLevel) / 2;
+		AffixLevel = ItemLevel - QualityLevel / 2;
 	}
 	else
 	{
-		AffixLevel = (2 * ItemLevel) - MaximumItemLevel;
+		AffixLevel = 2 * ItemLevel - MaximumItemLevel;
 	}
 
 	OutAffixLevel = (AffixLevel > MaximumItemLevel) ? MaximumItemLevel : AffixLevel; // Clamp AffixLevel to our Maximum ItemLevel.
@@ -116,16 +116,16 @@ bool UItemInstancingFunction::SelectItemQualityType_Implementation(const FInstan
 			int32 PickChance = (ItemQualityRatioType.Base - ((ItemLevel - QualityLevel) / ItemQualityRatioType.Divisor)) * 128;
 
 			// Calculate the Magic Find.
-			const int32 EffectiveMagicFind = (DiminishingReturnsFactor > 0) ? ((MagicFind * DiminishingReturnsFactor) / (MagicFind + DiminishingReturnsFactor)) : MagicFind;
+			const int32 EffectiveMagicFind = (DiminishingReturnsFactor > 0) ? (MagicFind * DiminishingReturnsFactor / (MagicFind + DiminishingReturnsFactor)) : MagicFind;
 
 			// Integrate the Effective Magic Find.
-			PickChance = (PickChance * 100) / (100 + EffectiveMagicFind);
+			PickChance = PickChance * 100 / (100 + EffectiveMagicFind);
 
 			// Calculate the Final Pick Chance at this Quality Type.
 			int32 FinalPickChance = 0;
 			if (DropTableQualityFactor > 0)
 			{
-				FinalPickChance = PickChance - ((PickChance * DropTableQualityFactor) / 1024);
+				FinalPickChance = PickChance - (PickChance * DropTableQualityFactor / 1024);
 			}
 			else
 			{
@@ -133,10 +133,12 @@ bool UItemInstancingFunction::SelectItemQualityType_Implementation(const FInstan
 			}
 
 			// Decide if this Quality Type is the one we want.
-			if (ItemInstancePtr->ItemStream.RandHelper(FinalPickChance) < 128)
+			FinalPickChance = ItemInstancePtr->ItemStream.RandHelper(FinalPickChance);
+			if (FinalPickChance < 128)
 			{
 				// This Quality Type is successfully selected.
 				SelectedItemQualityType = ItemQualityRatioType.QualityType;
+				break;
 			}
 		}
 	}

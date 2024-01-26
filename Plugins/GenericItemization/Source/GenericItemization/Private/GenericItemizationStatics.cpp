@@ -99,7 +99,7 @@ TOptional<TInstancedStruct<FItemDefinition>> UGenericItemizationStatics::PickIte
 
 	return Result;
 }
-
+UE_DISABLE_OPTIMIZATION
 TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAffixDefinitionForItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
 {
 	TOptional<TInstancedStruct<FAffixDefinition>> Result = TOptional<TInstancedStruct<FAffixDefinition>>();
@@ -113,7 +113,7 @@ TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAf
 	}
 
 	UDataTable* const AffixPool = ItemInstancePtr->ItemDefinition.Get().AffixPool;
-	if (!AffixPool || AffixPool->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct()))
+	if (!AffixPool || !AffixPool->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct()))
 	{
 		return Result;
 	}
@@ -131,7 +131,7 @@ TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAf
 		FInstancedStruct PickedAffix;
 		if (AffixPickFunctionCDO->PickAffix(ItemInstance, ItemInstancingContext, PickedAffix))
 		{
-			TInstancedStruct<FAffixDefinition> InstancedAffixDefinition;
+			TInstancedStruct<FAffixDefinition> InstancedAffixDefinition = TInstancedStruct<FAffixDefinition>::Make();
 			InstancedAffixDefinition.InitializeAsScriptStruct(PickedAffix.GetScriptStruct(), PickedAffix.GetMemory());
 
 			Result.Emplace(InstancedAffixDefinition);
@@ -140,7 +140,8 @@ TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAf
 
 	return Result;
 }
-
+UE_ENABLE_OPTIMIZATION
+UE_DISABLE_OPTIMIZATION
 TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(const TInstancedStruct<FAffixDefinition>& AffixDefinition, const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
 {
 	TOptional<TInstancedStruct<FAffixInstance>> Result = TOptional<TInstancedStruct<FAffixInstance>>();
@@ -163,7 +164,7 @@ TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::Generate
 	{
 		MutableAffixInstance->AffixDefinition = AffixDefinition;
 
-		TInstancedStruct<FAffixInstance> AffixInstance;
+		TInstancedStruct<FAffixInstance> AffixInstance = TInstancedStruct<FAffixInstance>::Make();
 		AffixInstance.InitializeAsScriptStruct(NewAffixInstance.GetScriptStruct(), NewAffixInstance.GetMemory());
 
 		Result.Emplace(AffixInstance);
@@ -171,7 +172,7 @@ TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::Generate
 
 	return Result;
 }
-
+UE_ENABLE_OPTIMIZATION
 bool PickItemDefinition_Recursive(const TInstancedStruct<FItemDropTableType>& InPick, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutPick)
 {
 	if (!InPick.IsValid())
