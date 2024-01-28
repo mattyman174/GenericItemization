@@ -1,4 +1,4 @@
-# Generic Itemization Plugin
+﻿# Generic Itemization Plugin
 <a name="top"></a>
 ### Foreword
 The underpinning motivation behind the development of this Plugin and its subsequent free availability to the community was borne out of a desire to simply explore and understand the limitations of the [Instanced Struct](#instanced-structs) framework and especially its usefulness towards DataTables. While also providing a useful implementation of Itemization utilizing these features that you might find in a traditional ARPG (similar to Diablo or Path of Exile).
@@ -20,15 +20,14 @@ You can find my contact information on my website:
 >3. [Setting Up a Project Using the Generic Itemization Plugin](#setup)  
 >4. [Class Layout](#class-layout)  
 >5. [Generic Itemization Concepts](#concepts)  
->>5.1 [Items](#items)  
->>>5.1.1 [Sub Section](#concepts-asc-rm)  
+>>5.1 [Drop Tables](#drop-tables)
+>>>5.1.1 [Drop Table Types](#drop-table-types)
 >
->>5.2 [Affixes](#affixes)  
->>>5.2.1 [Sub Section](#concepts-asc-rm)  
->
->>5.3 [Item Drop Actor](#item-drop-actor)  
->>5.4 [Item Dropper Component](#item-dropper-component)  
->>5.5 [Item Inventory Component](#item-inventory-component)  
+>>5.2 [Items](#items)  
+>>5.3 [Affixes](#affixes)  
+>>5.4 [Item Drop Actor](#item-drop-actor)  
+>>5.5 [Item Dropper Component](#item-dropper-component)  
+>>5.6 [Item Inventory Component](#item-inventory-component)  
 >6. [Other Resources](#other-resources)  
          
 <a name="intro"></a>
@@ -116,10 +115,23 @@ A sample third person project is included with this documentation and is designe
 
 The goal is to keep the project simple for those that wish to take advantage of what it offers out of the box without having to dive deep into setting up the nitty gritty details. It does not focus on advanced usage such as overriding Affix Selection to implement more complex requirements that maybe desired on a per game basis.
 
-It demonstrates the following concepts:
-* List
-* Concepts
-* Here
+It demonstrates the following non exhaustive list of concepts in no particular order:
+* Defining Items as `ItemDefinitions` inside DataTables.
+* Defining Affixes as `AffixDefinitions` inside DataTables.
+* Selecting an `AffixPool` for an `ItemDefinition`.
+* How to layout an `ItemQualityRatio` DataTable for Item `QualityType` determination.
+* Setup of an `AffixCountRatio` DataTable to determine the number of Affixes for particular Item `QualityTypes`.
+* Applications of an `AffixModifier` to `AffixDefinition` to describe what the Affix changes.
+* Managing `AffixPickRequirements` to decide which Affixes can be selected by which Items.
+* `UserData` for expressing additional information about ItemDefinitions we want to display to users.
+* Changing `UItemInstancingContextFunction` for passing in context information for an Item being Instanced.
+* Setting up `DropTables` that ultimately determine the pools of Items that can be selected for.
+* Overriding the `AItemDrop` Actor to display actual instances of Items within the world.
+* Usage of the `ItemDropperComponent` to actually drop Item Instances in the world.
+
+The Sample Project has sample data taken from Diablo 2 in order to demonstrate the plugins usage, it also provides some minimal User Interface additions to make visualizing the Itemization that has been implemented.
+
+![Sample Project Example](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/SampleProject.JPG)
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -128,9 +140,9 @@ It demonstrates the following concepts:
 
 Setup of the Generic Itemization Plugin is extremely simple. It does not require any additional code in order to get running as it provides an end to end experience for the vast majority of its functionality out of the box.
 
-Simply add the Plugin to your Project and ensure that it is enabled. If you are using it via C++ do not forget to add it to your projects `.Build.cs` dependencies.
+Simply add the Plugin to your C++ Project, ensure that it is enabled and compile. Do not forget to add it to your projects `.Build.cs` dependencies.
 
-Once it is integrated as explained above, you are free to move ahead and add Items and Affixes, drop Items from Actors and manage them as necessary for your game.
+Once it is integrated as explained above, you are free to move ahead and add Items and Affixes, drop Items from Actors and manage them as necessary for your specific games needs.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -139,7 +151,7 @@ Once it is integrated as explained above, you are free to move ahead and add Ite
 
 The Class Layout of the entire Generic Itemization Plugin is displayed below. It shows the relationships between different classes and struct types. As well as how some of their properties relate to one another. It also shows all of the functions available to each class.
 
-![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystemTransparent.png)
+![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystem.png)
 
 You will want to view it in full as a separate window in order to make out its details.
 
@@ -152,42 +164,99 @@ This overview of the structure of the Plugin may become useful for you later as 
 
 #### Sections
 
-> 5.1 [Items](#items)  
-> 5.2 [Affixes](#affixes)  
-> 5.3 [ItemDrop Actor](#item-drop-actor)  
-> 5.4 [Item Dropper Component](#item-dropper-component)  
-> 5.5 [Item Inventory Component](#item-inventory-component)  
+> 5.1 [Drop Tables](#drop-tables)
+> 5.2 [Items](#items)  
+> 5.3 [Affixes](#affixes)  
+> 5.4 [ItemDrop Actor](#item-drop-actor)  
+> 5.5 [Item Dropper Component](#item-dropper-component)  
+> 5.6 [Item Inventory Component](#item-inventory-component)  
+
+<a name="drop-tables"></a>
+### 5.1 Drop Tables
+
+DropTables are the core data of what makes up the Generic Itemization plugin. They contain entries that describe how many Items can be selected for (`PickCount`) during the Item selection process, what the probability of no Item being selected for is (`NoPickChance`) and finally the actual layout of what Items or other DropTables are selectable when that entry is used during the Item selection process.
+
+The entries in a DropTable are made up of a few different types. Which are described in [5.1.1 - DropTable Types](#drop-table-types).
+
+The `PickCount` should be self explanatory. It is how many times we will make a selection from that entry for an Item Definition. 
+
+The `NoPickChance` is a special property of the DropTable entries that describes the probability, for a single Pick, that nothing will be selected.
+
+To make a simple example, if we had a DropTable entry with a `NoPickChance` of `1` and a single `ItemDropTable` entry that also has a `PickChance` of `1`. Both the `NoPick` and `ItemDropTable` entry have the same probability of being selected. They each have a 1~/2~ chance of being chosen. If the `NoPickChance` was `2`, then `NoPick` would have a 2~/3~ chance of being selected.
+
+The above example is true by default for all selection processes throughout the entire plugin.
+
+![Item Drop Table](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropTable.JPG)
+
+<a name="drop-table-types"></a>
+### 5.1.1 Drop Table Types
+
+There are currently 3 different types of ItemDropTable entry types that can be selected from when composing a DropTable. Each serves a specific purpose that can be utilized to architect a DropTable that achieves any combination of outcomes for which Items will be selected for.
+
+* Item Definition
+* ItemDefinitionCollection
+* ItemDropTableCollection
+
+Each ItemDropTable entry type has a `PickChance` property that describes the probability of that entry being selected for against all of the other entries that may exist along side it. This also includes the `NoPickChance` which is added as the first entry in the pool of selectable entries during the selection process.
+
+#### Item Definition Entry
+
+The `ItemDefinition` entry type is a pointer to another entry in a DataTable that contains ItemDefinitions. It allows you to describe the selection of a single Item that you may want to be selected for specifically in a higher level of the DropTable, where you may want to override particular elements of its selection, such as its `PickChance` in relation to other entries.
+
+![Item Definition Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionEntry.JPG)
+
+#### Item Definition Collection Entry
+
+The `ItemDefinitionCollection` entry type is a DataTable itself that contains `ItemDefinitions`, from which a selection will be made within that DataTable based on the `PickRequirements` and `PickFunction` that are described on the `ItemDefinitionCollection` entry within the DropTable. 
+
+This types native `PickRequirements` allow you to define the `QualityLevel` range that a selection from that DataTable of `ItemDefinitions` will be made.
+
+This allows you to compose DataTables of `ItemDefinitions` with all of the Items you like, regardless of their `QualityLevel` together and still have fine grain control over which ones will be available as part of that entries selection pool.
+
+Most entries in a DropTable will be of this type.
+
+![Item Definition Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionCollectionEntry.JPG)
+
+#### Item DropTable Collection Entry
+
+The `ItemDropTableCollection` entry is a little more complex than the others above. It has a recursive nature, in that it allows the selection of other DropTable entries with its own set of `PickRequirements` and accompanying `PickFunction`. 
+
+By default, this type does not have any native `PickRequirements`. These can be overridden to implement any functionality you like for deciding which entries are selected for.
+
+![Item Drop Table Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropTableCollectionEntry.JPG)
+
+**[⬆ Back to Top](#table-of-contents)**
 
 <a name="items"></a>
-### 5.1 Items
+### 5.2 Items
 
 TODO
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="affixes"></a>
-### 5.2 Affixes
+### 5.3 Affixes
 
 TODO
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-drop-actor"></a>
-### 5.3 ItemDrop Actor
+### 5.4 ItemDrop Actor
 
 TODO
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-dropper-component"></a>
-### 5.4 Item Dropper Component
+### 5.5 Item Dropper Component
 
 TODO
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-inventory-component"></a>
-### 5.5 Item Inventory Component
+### 5.6 Item Inventory Component
 
 TODO
 
