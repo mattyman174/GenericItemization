@@ -164,7 +164,7 @@ This overview of the structure of the Plugin may become useful for you later as 
 
 #### Sections
 
-> 5.1 [Drop Tables](#drop-tables)
+> 5.1 [Drop Tables](#drop-tables)  
 > 5.2 [Items](#items)  
 > 5.3 [Affixes](#affixes)  
 > 5.4 [ItemDrop Actor](#item-drop-actor)  
