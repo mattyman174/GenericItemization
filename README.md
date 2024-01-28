@@ -182,7 +182,7 @@ The `PickCount` should be self explanatory. It is how many times we will make a 
 
 The `NoPickChance` is a special property of the DropTable entries that describes the probability, for a single Pick, that nothing will be selected.
 
-To make a simple example, if we had a DropTable entry with a `NoPickChance` of `1` and a single `ItemDropTable` entry that also has a `PickChance` of `1`. Both the `NoPick` and `ItemDropTable` entry have the same probability of being selected. They each have a 1~/2~ chance of being chosen. If the `NoPickChance` was `2`, then `NoPick` would have a 2~/3~ chance of being selected.
+To make a simple example, if we had a DropTable entry with a `NoPickChance` of `1` and a single `ItemDropTable` entry that also has a `PickChance` of `1`. Both the `NoPick` and `ItemDropTable` entry have the same probability of being selected. They each have a 1/2 chance of being chosen. If the `NoPickChance` was `2`, then `NoPick` would have a 2/3 chance of being selected.
 
 The above example is true by default for all selection processes throughout the entire plugin.
 
@@ -211,6 +211,10 @@ The `ItemDefinitionCollection` entry type is a DataTable itself that contains `I
 
 This types native `PickRequirements` allow you to define the `QualityLevel` range that a selection from that DataTable of `ItemDefinitions` will be made.
 
+`PickRequirements` is an InstancedStruct that the `PickFunction` uses to determine what entries from the `ItemDefinition` pool are valid for selection. These can be overridden to provide extra requirements that you might want for your Itemization.
+
+The `PickFunction` is an Object of `UItemDefinitionCollectionPickFunction` type and contains a single function `DoesItemDefinitionSatisfyPickRequirements` that can be overridden both in C++ and Blueprint. It is called for every `ItemDefinition` that is in the pool to compare it against the requirements.
+
 This allows you to compose DataTables of `ItemDefinitions` with all of the Items you like, regardless of their `QualityLevel` together and still have fine grain control over which ones will be available as part of that entries selection pool.
 
 Most entries in a DropTable will be of this type.
@@ -221,7 +225,7 @@ Most entries in a DropTable will be of this type.
 
 The `ItemDropTableCollection` entry is a little more complex than the others above. It has a recursive nature, in that it allows the selection of other DropTable entries with its own set of `PickRequirements` and accompanying `PickFunction`. 
 
-By default, this type does not have any native `PickRequirements`. These can be overridden to implement any functionality you like for deciding which entries are selected for.
+By default, this type does not have any native `PickRequirements`. These can be overridden to implement any functionality you like for deciding which entries are selected for in the same way that the `ItemDefinitionCollection` entries `PickRequirements` and `PickFunction` can.
 
 ![Item Drop Table Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropTableCollectionEntry.JPG)
 
