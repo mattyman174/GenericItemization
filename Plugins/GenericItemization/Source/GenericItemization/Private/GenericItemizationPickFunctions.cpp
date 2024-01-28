@@ -320,21 +320,6 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 					continue;
 				}
 
-// 				const bool bHasExistingAffix = AffixDefinitions.ContainsByPredicate([&](const TInstancedStruct<FAffixDefinition>& Other)
-// 				{
-// 					if (Other.IsValid())
-// 					{
-// 						return AffixDefinition.AffixType.MatchesTag(Other.Get().AffixType);
-// 					}
-// 
-// 					return false;
-// 				});
-// 
-// 				if (bHasExistingAffix)
-// 				{
-// 					continue;
-// 				}
-
 				// Add the Affix to the list of ones we can select from.
 				AffixDefinitions.Add(AffixDefinitionInstance);
 			}

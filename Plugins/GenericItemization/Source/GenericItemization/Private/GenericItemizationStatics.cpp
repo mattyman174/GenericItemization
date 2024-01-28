@@ -99,7 +99,7 @@ TOptional<TInstancedStruct<FItemDefinition>> UGenericItemizationStatics::PickIte
 
 	return Result;
 }
-UE_DISABLE_OPTIMIZATION
+
 TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAffixDefinitionForItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
 {
 	TOptional<TInstancedStruct<FAffixDefinition>> Result = TOptional<TInstancedStruct<FAffixDefinition>>();
@@ -140,8 +140,7 @@ TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAf
 
 	return Result;
 }
-UE_ENABLE_OPTIMIZATION
-UE_DISABLE_OPTIMIZATION
+
 TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(const TInstancedStruct<FAffixDefinition>& AffixDefinition, const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
 {
 	TOptional<TInstancedStruct<FAffixInstance>> Result = TOptional<TInstancedStruct<FAffixInstance>>();
@@ -172,7 +171,7 @@ TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::Generate
 
 	return Result;
 }
-UE_ENABLE_OPTIMIZATION
+
 bool PickItemDefinition_Recursive(const TInstancedStruct<FItemDropTableType>& InPick, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutPick)
 {
 	if (!InPick.IsValid())
