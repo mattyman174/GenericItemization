@@ -248,21 +248,33 @@ TODO
 <a name="item-drop-actor"></a>
 ### 5.4 ItemDrop Actor
 
-TODO
+`ItemDrop` Actors are essentially a wrapper around an `ItemInstance` that allow it to exist within the world. It provides the ability to visualize the `ItemInstance` and they are used in conjunction with the `ItemDropperComponent`.
+
+It provides some convenience functions for accessing the `ItemInstances` and sliced versions of the `ItemInstance` struct and `ItemDefinition` struct of the `ItemInstance` it is representing.
+
+It has support for the `ItemInstance` being a replicated property as well. This means that the `ItemDrop` Actor can be replicated and managed across the Network, passing along its `ItemInstance` in the process for all Clients to see.
+
+The `ItemInstance` property on the `ItemDrop` Actor is set by the `ItemDropperComponent` when it is spawned in the world and is unchanged after that.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-dropper-component"></a>
 ### 5.5 Item Dropper Component
 
-TODO
+The `ItemDropperComponent` is a component that sits on an Actor to facilitate the entry point to dropping `ItemDrop` Actors that represent `ItemInstances` within the world, for that Actor from a specified DropTable.
+
+It implements a single function `UItemDropperComponent::DropItems` which can be called from C++ or Blueprint to drop Items from its specified DropTable. This function is also where you pass through context information that surrounds and supports any `ItemInstances` that comes from this `ItemDropperComponent`. The Sample Project passes in the Items Level and the Magic Find value to use during the Item Instancing Process.
+
+It also has an `ItemDropClass` property that allows you to specify which `ItemDrop` Actor type you want it to spawn. This is useful for overriding the visual representation of an `ItemInstance` within the world. The Sample Project overrides this to provide an appropriate visualization of `ItemInstances` that have been dropped.
+
+![Item Dropper Component](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropperComponent.JPG)
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-inventory-component"></a>
 ### 5.6 Item Inventory Component
 
-TODO
+The `UItemInventoryComponent` class is currently not implemented but is a planned feature for a future update. Its purpose would be to provide a mechanism to store a number of `ItemInstances` that might have come from, for example, `ItemDrop` Actors that were dropped within the world.
 
 **[⬆ Back to Top](#table-of-contents)**
 
