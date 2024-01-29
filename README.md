@@ -25,9 +25,10 @@ You can find my contact information on my website:
 >
 >>5.2 [Items](#items)  
 >>5.3 [Affixes](#affixes)  
->>5.4 [Item Drop Actor](#item-drop-actor)  
->>5.5 [Item Dropper Component](#item-dropper-component)  
->>5.6 [Item Inventory Component](#item-inventory-component)  
+>>5.4 [Item Instancing Process](#item-instancing-process)
+>>5.5 [Item Drop Actor](#item-drop-actor)  
+>>5.6 [Item Dropper Component](#item-dropper-component)  
+>>5.7 [Item Inventory Component](#item-inventory-component)  
 >6. [Other Resources](#other-resources)  
          
 <a name="intro"></a>
@@ -167,9 +168,10 @@ This overview of the structure of the Plugin may become useful for you later as 
 > 5.1 [Drop Tables](#drop-tables)  
 > 5.2 [Items](#items)  
 > 5.3 [Affixes](#affixes)  
-> 5.4 [ItemDrop Actor](#item-drop-actor)  
-> 5.5 [Item Dropper Component](#item-dropper-component)  
-> 5.6 [Item Inventory Component](#item-inventory-component)  
+> 5.4 [Item Instancing Process](#item-instancing-process)  
+> 5.5 [ItemDrop Actor](#item-drop-actor)  
+> 5.6 [Item Dropper Component](#item-dropper-component)  
+> 5.7 [Item Inventory Component](#item-inventory-component)  
 
 <a name="drop-tables"></a>
 ### 5.1 Drop Tables
@@ -193,15 +195,15 @@ The above example is true by default for all selection processes throughout the 
 
 There are currently 3 different types of ItemDropTable entry types that can be selected from when composing a DropTable. Each serves a specific purpose that can be utilized to architect a DropTable that achieves any combination of outcomes for which Items will be selected for.
 
-* Item Definition
-* ItemDefinitionCollection
-* ItemDropTableCollection
+* `ItemDefinitionEntry`
+* `ItemDefinitionCollection`
+* `ItemDropTableCollection`
 
 Each ItemDropTable entry type has a `PickChance` property that describes the probability of that entry being selected for against all of the other entries that may exist along side it. This also includes the `NoPickChance` which is added as the first entry in the pool of selectable entries during the selection process.
 
 #### Item Definition Entry
 
-The `ItemDefinition` entry type is a pointer to another entry in a DataTable that contains ItemDefinitions. It allows you to describe the selection of a single Item that you may want to be selected for specifically in a higher level of the DropTable, where you may want to override particular elements of its selection, such as its `PickChance` in relation to other entries.
+The `ItemDefinitionEntry` type is a pointer to another entry in a DataTable that contains ItemDefinitions. It allows you to describe the selection of a single Item that you may want to be selected for specifically in a higher level of the DropTable, where you may want to override particular elements of its selection, such as its `PickChance` in relation to other entries.
 
 ![Item Definition Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionEntry.JPG)
 
@@ -245,8 +247,27 @@ TODO
 
 **[⬆ Back to Top](#table-of-contents)**
 
+<a name="item-instancing-process"></a>
+### 5.4 Item Instancing Process
+
+The Generic Itemization plugin currently provides a relatively straight forward mechanism for generating Items from `ItemDefinitions` defined in DropTables. The `ItemDropperComponent`s `DropItems` function is the entry point to generating `ItemInstances` and `ItemDrop` Actors that can represent those instances within the world.
+
+The Item Instancing Process is the steps that are taken from when the `DropItems` function is called to when it produces an `ItemDrop` Actor. The short list of what occurs during this process is as follows:
+
+1. Build an `ItemInstancingContext`.
+2. Find the number of Items to drop (the `PickCount`).
+3. For each of the Picks, select an `ItemDefinition` or a `NoPick` result.
+4. Calculate the Affix Level from the `ItemLevel` and `QualityLevel` on the `ItemDefinition`.
+5. Randomly select the Item `QualityType` (which can be predefined) from the `ItemQualityRatio` on the `ItemDefinition`.
+6. Add any predefined Affixes that are described on the `ItemDefinition`.
+7. Determine the number of Affixes to randomly generate, from the `AffixCountRatio` on the `ItemDefinition`.
+8. For Affix Count number of Affixes, generate them from the Affix Pool on the `ItemDefinition`.
+9. Spawn an `ItemDrop` Actor and assign the `ItemInstance` to it.
+
+**[⬆ Back to Top](#table-of-contents)**
+
 <a name="item-drop-actor"></a>
-### 5.4 ItemDrop Actor
+### 5.5 ItemDrop Actor
 
 `ItemDrop` Actors are essentially a wrapper around an `ItemInstance` that allow it to exist within the world. It provides the ability to visualize the `ItemInstance` and they are used in conjunction with the `ItemDropperComponent`.
 
@@ -259,7 +280,7 @@ The `ItemInstance` property on the `ItemDrop` Actor is set by the `ItemDropperCo
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-dropper-component"></a>
-### 5.5 Item Dropper Component
+### 5.6 Item Dropper Component
 
 The `ItemDropperComponent` is a component that sits on an Actor to facilitate the entry point to dropping `ItemDrop` Actors that represent `ItemInstances` within the world, for that Actor from a specified DropTable.
 
@@ -272,7 +293,7 @@ It also has an `ItemDropClass` property that allows you to specify which `ItemDr
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-inventory-component"></a>
-### 5.6 Item Inventory Component
+### 5.7 Item Inventory Component
 
 The `UItemInventoryComponent` class is currently not implemented but is a planned feature for a future update. Its purpose would be to provide a mechanism to store a number of `ItemInstances` that might have come from, for example, `ItemDrop` Actors that were dropped within the world.
 
