@@ -315,9 +315,28 @@ The Suitability value must be less than `128` for a `QualityType` to be successf
 
 The default formula used in the `UItemInstancingFunction::SelectItemQualityType` function for the selection of the `QualityType` looks like this:
 
-`Suitability = (Base - ((ItemLevel - QualityLevel) / Divisor)) * 128;`
+```cpp
+Suitability = (Base - ((ItemLevel - QualityLevel) / Divisor)) * 128;
+```
 
-The `MagicFind` is integrated along with the `Factor` which causes diminishing returns for that `QualityType`. With `MagicFind` integrated, the final value for Suitability is then set to a random number in the range `0 - Suitability`. This value is checked for less than `128` to which that `QualityType` would be selected if true. Otherwise the next `QualityType` is run through the same process and so on.
+The `MagicFind` is integrated along with the `Factor` which causes diminishing returns for that `QualityType`. 
+
+```cpp
+EffectiveMagicFind = (Factor > 0) ? (MagicFind * Factor / (MagicFind + Factor)) : MagicFind;
+Suitability = Suitability * 100 / (100 + EffectiveMagicFind);
+FinalSuitability  = Suitability - (Suitability / 1024);
+```
+
+With `MagicFind` integrated, the final value for Suitability is then set to a random number in the range `0 - Suitability`. This value is checked for less than `128` to which that `QualityType` would be selected if true. Otherwise the next `QualityType` is run through the same process and so on.
+
+```cpp
+FinalSuitability = ItemStream.RandHelper(FinalSuitability);
+if (FinalSuitability < 128)
+{
+	// This QualityType is successfully selected.
+	SelectedItemQualityType = ItemQualityRatioType.QualityType;
+}
+```
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -358,7 +377,7 @@ You can easily categories and query for specific data by making use of the Gamep
 
 Each `ItemDefinition` must describe a valid `ItemInstancingFunction`. This Class type is a vital part of how `ItemInstance`s are created from `ItemDefinition`s.
 
-It contains many functions, which can be overridden in C++ and Blueprint, that help an `ItemInstance` determine is properties from the `ItemDefinition` it is being generated from. You can look at the [Class Layout](#class-layout) for a full list of all of its functions. Many of which can be overridden to change their behaviour.
+It contains many functions, which can be overridden in C++ and Blueprint, that help an `ItemInstance` determine its properties from the `ItemDefinition` it is being generated from. You can look at the [Class Layout](#class-layout) for a full list of all of its functions. Many of which can be overridden to change their behaviour.
 
 The default `UItemInstancingFunction` class is setup to manage generating an appropriate `ItemInstance` from an `ItemDefinition` and only Advanced Users that need alternative functionality should override it.
 
