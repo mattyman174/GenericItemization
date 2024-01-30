@@ -33,6 +33,7 @@ You can find my contact information on my website:
 >
 >>>>5.2.1.5 [Affix Count, Predefined Affixes and the Affix Pool](#item-definition-affixes)  
 >>>>5.2.1.6 [User Data](#item-definition-user-data)  
+>>>>5.2.1.7 [Item Instancing Function](#item-definition-instancing-function)  
 >
 >>5.3 [Affixes](#affixes)  
 >>5.4 [Item Instancing Process](#item-instancing-process)  
@@ -349,6 +350,19 @@ The `UserData` property on the `ItemDefinition` is a Map of Gameplay Tags and In
 In the Sample Project, it is used to hold references to assets that are displayed on the User Interface, such as the `DisplayImage` of the `ItemInstance` that was generated from the `ItemDefinition`.
 
 You can easily categories and query for specific data by making use of the Gameplay Tag key.
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="item-definition-instancing-function"></a>
+### 5.2.1.7 Item Instancing Function
+
+Each `ItemDefinition` must describe a valid `ItemInstancingFunction`. This Class type is a vital part of how `ItemInstance`s are created from `ItemDefinition`s.
+
+It contains many functions, which can be overridden in C++ and Blueprint, that help an `ItemInstance` determine is properties from the `ItemDefinition` it is being generated from. You can look at the [Class Layout](#class-layout) for a full list of all of its functions. Many of which can be overridden to change their behaviour.
+
+The default `UItemInstancingFunction` class is setup to manage generating an appropriate `ItemInstance` from an `ItemDefinition` and only Advanced Users that need alternative functionality should override it.
+
+The `ItemInstancingFunction` class has its functions called from the Class Default Object of that type by the `Item Instancing Process` when necessary for generating the relevant properties of the `ItemInstance`.
 
 **[⬆ Back to Top](#table-of-contents)**
 
