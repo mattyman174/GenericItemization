@@ -1,6 +1,7 @@
 ﻿# Generic Itemization Plugin
 <a name="top"></a>
 ### Foreword
+
 The underpinning motivation behind the development of this Plugin and its subsequent free availability to the community was borne out of a desire to simply explore and understand the limitations of the [Instanced Struct](#instanced-structs) framework and especially its usefulness towards DataTables. While also providing a useful implementation of Itemization utilizing these features that you might find in a traditional ARPG (similar to Diablo or Path of Exile).
 
 Added in Unreal Engine 5.0 and better developed in later engine versions, Instanced Structs work similarly as instanced `UObject*` properties but are `USTRUCT`s. DataTables do not support the usage of instanced `UObject*` properties and thus the introduction of Instanced Structs brings much needed flexibility to DataTables. This plugin will explore that new relationship.
@@ -11,6 +12,8 @@ If you find the Generic Itemization Plugin useful to you, please [consider makin
 
 You can find my contact information on my website:
 [https://fissureentertainment.com/](https://fissureentertainment.com/)
+
+Latest compiled against: UE5.3.2
 
 <a name="table-of-contents"></a>
 ## Table of Contents
