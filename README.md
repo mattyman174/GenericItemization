@@ -25,6 +25,14 @@ You can find my contact information on my website:
 >
 >>5.2 [Items](#items)  
 >>>5.2.1 [Item Definition](#item-definition)  
+>>>>5.2.1.1 [Item Type](#item-definition-item-type)  
+>>>>5.2.1.2 [Spawnable](#item-definition-spawnable)  
+>>>>5.2.1.3 [Pick Chance](#item-definition-pick-chance)  
+>>>>5.2.1.4 [Quality Type](#item-definition-quality-type)  
+>>>>>5.2.1.4.1 [ItemQualityRatio and Quality Type selection](#item-definition-quality-type-selection)  
+>
+>>>>5.2.1.5 [Affix Count, Predefined Affixes and the Affix Pool](#item-definition-affixes)  
+>>>>5.2.1.6 [User Data](#item-definition-user-data)  
 >
 >>5.3 [Affixes](#affixes)  
 >>5.4 [Item Instancing Process](#item-instancing-process)  
