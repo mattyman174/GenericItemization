@@ -45,7 +45,7 @@ You can find my contact information on my website:
 >>>>5.3.1.1 [Affix Type](#affix-definition-affix-type)  
 >>>>5.3.1.2 [Spawnable](#affix-definition-spawnable)  
 >>>>5.3.1.3 [Pick Chance](#affix-definition-pick-chance)  
->>>>5.3.1.4 [Occurs for, Item Type, Quality Type and Quality Level](#affix-definition-occurs-for)  
+>>>>5.3.1.4 [Occurs for Item Type, Quality Type and Quality Level](#affix-definition-occurs-for)  
 >>>>5.3.1.5 [Required Item Affix Level](#affix-definition-required-affix-level)  
 >>>>5.3.1.6 [Modifiers](#affix-definition-modifiers)  
 >>>
@@ -230,13 +230,13 @@ There are currently 3 different types of ItemDropTable entry types that can be s
 
 Each ItemDropTable entry type has a `PickChance` property that describes the probability of that entry being selected for against all of the other entries that may exist along side it. This also includes the `NoPickChance` which is added as the first entry in the pool of selectable entries during the selection process.
 
-#### Item Definition Entry
+>**Item Definition Entry**
 
 The `ItemDefinitionEntry` type is a pointer to another entry in a DataTable that contains ItemDefinitions. It allows you to describe the selection of a single Item that you may want to be selected for specifically in a higher level of the DropTable, where you may want to override particular elements of its selection, such as its `PickChance` in relation to other entries.
 
 ![Item Definition Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionEntry.JPG)
 
-#### Item Definition Collection Entry
+>**Item Definition Collection Entry**
 
 The `ItemDefinitionCollection` entry type is a DataTable itself that contains `ItemDefinitions`, from which a selection will be made within that DataTable based on the `PickRequirements` and `PickFunction` that are described on the `ItemDefinitionCollection` entry within the DropTable. 
 
@@ -252,7 +252,7 @@ Most entries in a DropTable will be of this type.
 
 ![Item Definition Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionCollectionEntry.JPG)
 
-#### Item DropTable Collection Entry
+>**Item DropTable Collection Entry**
 
 The `ItemDropTableCollection` entry is a little more complex than the others above. It has a recursive nature, in that it allows the selection of other DropTable entries with its own set of `PickRequirements` and accompanying `PickFunction`. 
 
@@ -512,21 +512,20 @@ These Minimum and Maximum Item Affix Level property requirements are relatively 
 <a name="affix-definition-modifiers"></a>
 ### 5.3.1.6 Modifiers
 
-TODO
+`AffixDefinition`s contain a list of Modifiers that are all of the `AffixModifier`s that describe how an Affix changes particular properties for an Item.
 
-**[⬆ Back to Top](#table-of-contents)**
+They are very simple in design at their current stage, effectively just an integer range that can represent anything you need.
 
-<a name="affix-definition-affix-type"></a>
-### 5.3.1.1 Affix Type
-
-TODO
+There are no special restrictions or considerations for their usage and are entirely dependant upon the User as to how they are interpreted and utilized.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="affix-instance"></a>
 ### 5.3.2 Affix Instance
 
-TODO
+An `AffixInstance` is a relatively simple Instanced Struct as it currently stands, in that it is only pointing back to the `AffixDefinition` for the Affix that it is representing.
+
+`ItemInstance`s hold a list of all of the `AffixInstance`s that were applied to it during its generation. An `AffixInstance` is created from the `UItemInstancingFunction::MakeAffixInstance` function and can only be overridden in C++ due to Blueprint structs not being capable of inheritance. If you need to create additional functionality on top of an `AffixInstance` you will need to override that function to introduce it appropriately.
 
 **[⬆ Back to Top](#table-of-contents)**
 
