@@ -486,15 +486,15 @@ There are several requirements that an `ItemInstance` that wants to have an Affi
 
 The native requirements from the Plugin are described in this section are mandatory to ensure that Affixes are applied correctly.
 
-**Occurs for Item Types**
+>**Occurs for Item Types**
 
 Affixes are able to manage which types of Items that they can appear on. This property is a Gameplay Tag Container that lists all of the `ItemType`s that individual Affix can be available to be selected for.
 
-**Occurs for Quality Types**
+>**Occurs for Quality Types**
 
 Just with `ItemType`s, you can restrict access of an Affix to particular `QualityType`s of Items as well. In the Sample Project there are a number of `QualityType`s with different characteristics, we restrict particular Affixes from only appearing on these types and not others.
 
-**Occurs for Quality Level**
+>**Occurs for Quality Level**
 
 You can also restrict an Affix from appearing on Items that do not meet a minimum `QualityLevel`. This is useful for ensuring that higher `QualityLevel` Items do not try to select from low quality Affixes if that concept is important to your game.
 
