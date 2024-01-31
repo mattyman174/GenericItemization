@@ -41,6 +41,16 @@ You can find my contact information on my website:
 >>>5.2.2 [Item Instance](#item-instance)  
 >>
 >>5.3 [Affixes](#affixes)  
+>>>5.3.1 [Affix Definition](#affix-definition)
+>>>>5.3.1.1 [Affix Type](#affix-definition-affix-type)  
+>>>>5.3.1.2 [Spawnable](#affix-definition-spawnable)  
+>>>>5.3.1.3 [Pick Chance](#affix-definition-pick-chance)  
+>>>>5.3.1.4 [Occurs for, Item Type, Quality Type and Quality Level](#affix-definition-occurs-for)  
+>>>>5.3.1.5 [Required Item Affix Level](#affix-definition-required-affix-level)  
+>>>>5.3.1.6 [Modifiers](#affix-definition-modifiers)  
+>>>
+>>>5.3.2 [Affix Instance](#affix-instance)  
+>>
 >>5.4 [Item Instancing Process](#item-instancing-process)  
 >>5.5 [Item Drop Actor](#item-drop-actor)  
 >>5.6 [Item Dropper Component](#item-dropper-component)  
@@ -420,6 +430,77 @@ The Struct type of an `ItemInstance` can only be overridden from the C++ functio
 
 <a name="affixes"></a>
 ### 5.3 Affixes
+
+Affixes are collections of modifiers that affect changes to properties of an Item or any other gameplay element. The Generic Itemization Plugin provides a mechanism for defining and generating Affixes for Items, however it does not go into great detail on the final usage of those Affixes. That is up to the User to describe.
+
+Games like Diablo and Path of Exile use Affixes to change the properties of an Item itself, the Player Character Attributes, Strength and Power. As well as make changes to gameplay like granting abilities or performing other action dependant operations.
+
+![Affixes](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Affixes.JPG)
+
+The Sample Project splits Affixes into 2 groups, `Prefixes` and `Suffixes` to demonstrate that different combinations of these can be restricted to appearing on specific Item `QualityTypes`. The Generic Itemization Plugin provides many mechanisms for managing Affixes.
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition"></a>
+### 5.3.1 Affix Definition
+
+TODO
+
+![Affix Definition](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/AffixDefinition.JPG)
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-affix-type"></a>
+### 5.3.1.1 Affix Type
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-spawnable"></a>
+### 5.3.1.2 Spawnable
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-pick-chance"></a>
+### 5.3.1.3 Pick Chance
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-occurs-for"></a>
+### 5.3.1.4 Occurs for Item Types, Quality Types and Quality Level
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-require-affix-level"></a>
+### 5.3.1.5 Required Item Affix Level
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-modifiers"></a>
+### 5.3.1.6 Modifiers
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-affix-type"></a>
+### 5.3.1.1 Affix Type
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-instance"></a>
+### 5.3.2 Affix Instance
 
 TODO
 
