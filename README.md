@@ -116,7 +116,7 @@ TArray<TInstancedStruct<FMyStructParent>> MyArrayOfMyStructParentProperties;
 ```
 The Editor displays them as such.
 
-![Instanced Struct Example in Editor](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/InstancedStructExample.JPG)
+![Instanced Struct Example in Editor](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/InstancedStructExample.JPG =281x265)
 
 Take special note of how the `BaseStruct` meta in conjunction with `FInstancedStruct` and the `TInstancedStruct` type are used interchangeably. `TInstancedStruct` is a type safe wrapper around an `FInstancedStruct` and can be used in its place without declaring the `BaseStruct` meta.
 
@@ -217,7 +217,7 @@ To make a simple example, if we had a DropTable entry with a `NoPickChance` of `
 
 The above example is true by default for all selection processes throughout the entire plugin.
 
-![Item Drop Table](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropTable.JPG)
+![Item Drop Table](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropTable.JPG =590x401)
 
 <a name="drop-table-types"></a>
 ### 5.1.1 Drop Table Types
@@ -234,7 +234,7 @@ Each ItemDropTable entry type has a `PickChance` property that describes the pro
 
 The `ItemDefinitionEntry` type is a pointer to another entry in a DataTable that contains ItemDefinitions. It allows you to describe the selection of a single Item that you may want to be selected for specifically in a higher level of the DropTable, where you may want to override particular elements of its selection, such as its `PickChance` in relation to other entries.
 
-![Item Definition Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionEntry.JPG)
+![Item Definition Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionEntry.JPG =480x381)
 
 #### Item Definition Collection Entry
 
@@ -250,7 +250,7 @@ This allows you to compose DataTables of `ItemDefinitions` with all of the Items
 
 Most entries in a DropTable will be of this type.
 
-![Item Definition Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionCollectionEntry.JPG)
+![Item Definition Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinitionCollectionEntry.JPG =520x425)
 
 #### Item DropTable Collection Entry
 
@@ -258,7 +258,7 @@ The `ItemDropTableCollection` entry is a little more complex than the others abo
 
 By default, this type does not have any native `PickRequirements`. These can be overridden to implement any functionality you like for deciding which entries are selected for in the same way that the `ItemDefinitionCollection` entries `PickRequirements` and `PickFunction` can.
 
-![Item Drop Table Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropTableCollectionEntry.JPG)
+![Item Drop Table Collection Entry](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropTableCollectionEntry.JPG =520x412)
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -271,7 +271,7 @@ The Generic Itemization Plugin is designed to strip away a lot of the game speci
 
 Items are the lifeblood of the Generic Itemization Plugin and of games that utilize those types of systems which you can find especially in ARPGs.
 
-![Items](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Items.JPG)
+![Items](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Items.JPG =536x529)
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -282,7 +282,7 @@ Items are the lifeblood of the Generic Itemization Plugin and of games that util
 
 They are an Instanced Struct type held within DataTables. This means that you can override the default type with your own to introduce new information about what Items are to your game (`UserData` is a preferable choice to introducing new information, however there are some advantages to overriding the `ItemDefinition` itself).
 
-![Item Definition](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinition.JPG)
+![Item Definition](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDefinition.JPG =305x367)
 
 The `ItemDefinition` describes everything about an Item and also how an `ItemInstance` is to be generated from it.
 
@@ -331,7 +331,7 @@ If an `ItemDefinition` does not have a predefined `QualityType`, it must instead
 
 When an `ItemInstance` is being generated from that `ItemDefinition` it will have the `UItemInstancingFunction::SelectItemQualityType` function called on its `ItemInstancingFunction` Object to manage selection of the `QualityType`. This function uses that `ItemQualityRatio` table to make the selection.
 
-![Item Quality Ratio](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemQualityRatios.JPG)
+![Item Quality Ratio](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemQualityRatios.JPG =257x370)
 
 The Ratios are defined in an Array. The process by which the selection is made is as follows. For each of the Ratio entries in the Array, a Suitability value is generated by taking the `Base`, `Divisor` and `Factor` values, along with the `ItemLevel` and `QualityLevel` of the `ItemInstance`. There is also a `MagicFind` term that is taken from the `ItemInstancingContext` that amplifies the probabilities of each `QualityType` being selected.
 
@@ -371,7 +371,7 @@ if (FinalSuitability < 128)
 
 An `ItemDefintion` has the choice to define how many Affixes it will be able to generate at random from the `AffixPool`. This is managed through an `AffixCountRatio` DataTable. If this table is not defined on the `ItemDefinition` then it is assumed that Item cannot generate random Affixes. This is not the same as predefined Affixes, which are a separate property of an `ItemDefinition`, predefined Affixes are implied to be inherent to all `ItemInstances` of that `ItemDefinition` and are not randomly generated by the nature of them being predefined.
 
-![Affix Count Ratio](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/AffixCountRatios.JPG)
+![Affix Count Ratio](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/AffixCountRatios.JPG =273x280)
 
 This DataTable outlines an Array similar to the `ItemQualityRatio` DataTable, in that each entry describes a `QualityType` and the range for the number of Affixes that it can have randomly generated for it.
 
@@ -435,7 +435,7 @@ Affixes are collections of modifiers that affect changes to properties of an Ite
 
 Games like Diablo and Path of Exile use Affixes to change the properties of an Item itself, the Player Character Attributes, Strength and Power. As well as make changes to gameplay like granting abilities or performing other action dependant operations.
 
-![Affixes](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Affixes.JPG)
+![Affixes](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Affixes.JPG =356x200)
 
 The Sample Project splits Affixes into 2 groups, `Prefixes` and `Suffixes` to demonstrate that different combinations of these can be restricted to appearing on specific Item `QualityTypes`. The Generic Itemization Plugin provides many mechanisms for managing Affixes.
 
@@ -448,7 +448,7 @@ The Sample Project splits Affixes into 2 groups, `Prefixes` and `Suffixes` to de
 
 They are an Instanced Struct type held within DataTables. This means that you can override the default type with your own to introduce new information about what Affixes are to your game.
 
-![Affix Definition](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/AffixDefinition.JPG)
+![Affix Definition](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/AffixDefinition.JPG =304x267)
 
 **[⬆ Back to Top](#table-of-contents)**
 
