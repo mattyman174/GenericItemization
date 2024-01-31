@@ -160,7 +160,7 @@ The Sample Project has sample data taken from Diablo 2 in order to demonstrate t
 
 Setup of the Generic Itemization Plugin is extremely simple. It does not require any additional code in order to get running as it provides an end to end experience for the vast majority of its functionality out of the box.
 
-Simply add the Plugin to your C++ Project, ensure that it is enabled and compile. Do not forget to add it to your projects `.Build.cs` dependencies.
+Simply add the Plugin to your C++ or Blueprint based Project by placing the `GenericItemization` plugin folder into the `YOURPROJECT/Plugins/` folder. Do not forget to add it to your projects `.Build.cs` dependencies if you are going to utilize it in C++.
 
 Once it is integrated as explained above, you are free to move ahead and add Items and Affixes, drop Items from Actors and manage them as necessary for your specific games needs.
 
