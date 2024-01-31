@@ -300,7 +300,7 @@ The main restriction that is imposed on an Item by its `ItemType` is the Affixes
 <a name="item-definition-spawnable"></a>
 ### 5.2.1.2 Spawnable
 
-Because the Generic Itemization plugin is heavily reliant on data. There is a need for a mechanism to outright disable `ItemDefinitions` (and other concepts like `AffixDefinitions`) from being selectable in the `Item Instancing Process`.
+Because the Generic Itemization plugin is heavily reliant on data. There is a need for a mechanism to outright disable `ItemDefinition`s (and other concepts like `AffixDefinition`s) from being selectable in the `Item Instancing Process`.
 
 The `bSpawnable` flag on the `ItemDefintion` provides this control. When this flag is set to `false`, that `ItemDefinition` cannot be selected during the `Item Instancing Process` and is effectively ignored.
 
@@ -444,7 +444,9 @@ The Sample Project splits Affixes into 2 groups, `Prefixes` and `Suffixes` to de
 <a name="affix-definition"></a>
 ### 5.3.1 Affix Definition
 
-TODO
+`AffixDefinition`s are another of the core types within the Generic Itemization plugin. It is what describes an individual Affixes static data especially including the types of Modifiers that it will apply for an Item.
+
+They are an Instanced Struct type held within DataTables. This means that you can override the default type with your own to introduce new information about what Affixes are to your game.
 
 ![Affix Definition](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/AffixDefinition.JPG)
 
@@ -453,35 +455,54 @@ TODO
 <a name="affix-definition-affix-type"></a>
 ### 5.3.1.1 Affix Type
 
-TODO
+The `AffixType` of an Affix places it into a particular category that has consequences for elements of its behaviour and generation options that are available to it and the `ItemInstance` that it maybe being selected for in the `Item Instancing Process`.
+
+The main restriction that is imposed on an Item by an `AffixDefinition`s `AffixType` is that Affix will not be selectable if another Affix of the same `AffixType` has already been chosen for that `ItemInstance` being generated. This restriction is imposed by the `UAffixPickFunction::GetAffixesWithMinimumNativeRequirements` function which generates the Affix Pool available for selection for an `ItemInstance` during the `Item Instancing Process` based on its requirements.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="affix-definition-spawnable"></a>
 ### 5.3.1.2 Spawnable
 
-TODO
+Because the Generic Itemization plugin is heavily reliant on data. There is a need for a mechanism to outright disable `AffixDefinition`s (and other concepts like `ItemDefinition`s) from being selectable in the `Item Instancing Process`.
+
+The `bSpawnable` flag on the `AffixDefintion` provides this control. When this flag is set to `false`, that `AffixDefinition` cannot be selected during the `Item Instancing Process` and is effectively ignored.
+
+This allows entries to remain within the DataTable (either because they are obsolete, outdated or otherwise) whilst still providing access to the static information they provide.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="affix-definition-pick-chance"></a>
 ### 5.3.1.3 Pick Chance
 
-TODO
+The `PickChance` outlined on an `AffixDefinition` is that entries probability for selection when composed into an `AffixDefinition` pool that the `Item Instancing Process` creates behind the scenes as its making selections.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="affix-definition-occurs-for"></a>
 ### 5.3.1.4 Occurs for Item Types, Quality Types and Quality Level
 
-TODO
+There are several requirements that an `ItemInstance` that wants to have an Affix applied to it must meet from the Affix before it can have that Affix be considered within the Affix Pool for selection.
+
+The native requirements from the Plugin are described in this section are mandatory to ensure that Affixes are applied correctly.
+
+**Occurs for Item Types**
+Affixes are able to manage which types of Items that they can appear on. This property is a Gameplay Tag Container that lists all of the `ItemType`s that individual Affix can be available to be selected for.
+
+**Occurs for Quality Types**
+Just with `ItemType`s, you can restrict access of an Affix to particular `QualityType`s of Items as well. In the Sample Project there are a number of `QualityType`s with different characteristics, we restrict particular Affixes from only appearing on these types and not others.
+
+**Occurs for Quality Level**
+You can also restrict an Affix from appearing on Items that do not meet a minimum `QualityLevel`. This is useful for ensuring that higher `QualityLevel` Items do not try to select from low quality Affixes if that concept is important to your game.
+
+All of these requirements are checked and managed during the `Item Instancing Process` within the `UAffixPickFunction::GetAffixesWithMinimumNativeRequirements` function. This function specifically cannot be overridden in Blueprint, but is marked `virtual` for Advanced Users to modify within C++ if they so require. It is recommended for Blueprint Users to instead override the `UAffixPickFunction::PickAffix` function to introduce new requirements that they might need.
 
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="affix-definition-require-affix-level"></a>
 ### 5.3.1.5 Required Item Affix Level
 
-TODO
+These Minimum and Maximum Item Affix Level property requirements are relatively straight forward in that they provide control for restricting an Affix from being selectable during the `Item Instancing Process` on Items that do not meet that `AffixLevel` range. It is useful for stopping advanced Affixes from appearing on lower quality Items or inversely restricting low quality Affixes from applying to high quality Items.
 
 **[⬆ Back to Top](#table-of-contents)**
 
