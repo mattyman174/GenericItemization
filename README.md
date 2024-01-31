@@ -18,14 +18,14 @@ Latest compiled against: UE5.3.2
 <a name="table-of-contents"></a>
 ## Table of Contents
 
->1. [Intro to Instanced Structs and the Generic Itemization Plugin](#intro)  
->2. [Sample Project](#sp)  
->3. [Setting Up a Project Using the Generic Itemization Plugin](#setup)  
->4. [Class Layout](#class-layout)  
->5. [Generic Itemization Concepts](#concepts)  
+>1 [Intro to Instanced Structs and the Generic Itemization Plugin](#intro)  
+>2 [Sample Project](#sp)  
+>3 [Setting Up a Project Using the Generic Itemization Plugin](#setup)  
+>4 [Class Layout](#class-layout)  
+>5 [Generic Itemization Concepts](#concepts)  
 >>5.1 [Drop Tables](#drop-tables)  
 >>>5.1.1 [Drop Table Types](#drop-table-types)  
->
+>>
 >>5.2 [Items](#items)  
 >>>5.2.1 [Item Definition](#item-definition)  
 >>>>5.2.1.1 [Item Type](#item-definition-item-type)  
@@ -33,17 +33,20 @@ Latest compiled against: UE5.3.2
 >>>>5.2.1.3 [Pick Chance](#item-definition-pick-chance)  
 >>>>5.2.1.4 [Quality Type](#item-definition-quality-type)  
 >>>>>5.2.1.4.1 [ItemQualityRatio and Quality Type selection](#item-definition-quality-type-selection)  
->
+>>>>
 >>>>5.2.1.5 [Affix Count, Predefined Affixes and the Affix Pool](#item-definition-affixes)  
 >>>>5.2.1.6 [User Data](#item-definition-user-data)  
 >>>>5.2.1.7 [Item Instancing Function](#item-definition-instancing-function)  
->
+>>>
+>>>5.2.2 [Item Instance](#item-instance)  
+>>
 >>5.3 [Affixes](#affixes)  
 >>5.4 [Item Instancing Process](#item-instancing-process)  
 >>5.5 [Item Drop Actor](#item-drop-actor)  
 >>5.6 [Item Dropper Component](#item-dropper-component)  
 >>5.7 [Item Inventory Component](#item-inventory-component)  
->6. [Other Resources](#other-resources)  
+>
+>6 [Other Resources](#other-resources)  
          
 <a name="intro"></a>
 ## 1. Intro to Instanced Structs and the Generic Itemization Plugin
@@ -250,7 +253,13 @@ By default, this type does not have any native `PickRequirements`. These can be 
 <a name="items"></a>
 ### 5.2 Items
 
-TODO
+Items are data structures which contain information that can affect gameplay which maybe presented to the Player in-game. 
+
+The Generic Itemization Plugin is designed to strip away a lot of the game specific properties of Items that are typically found in games like Diablo and Path of Exile to give you a bare bones slate to build upon for what an Item means to you and your game. Items do however retain important components of what makes up the Itemization system as a whole, such as the concepts of rarity, distribution, quality and the idea of Affixes.
+
+Items are the lifeblood of the Generic Itemization Plugin and of games that utilize those types of systems which you can find especially in ARPGs.
+
+![Items](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Items.JPG)
 
 <a name="item-definition"></a>
 ### 5.2.1 Item Definition
@@ -385,6 +394,23 @@ It contains many functions, which can be overridden in C++ and Blueprint, that h
 The default `UItemInstancingFunction` class is setup to manage generating an appropriate `ItemInstance` from an `ItemDefinition` and only Advanced Users that need alternative functionality should override it.
 
 The `ItemInstancingFunction` class has its functions called from the Class Default Object of that type by the `Item Instancing Process` when necessary for generating the relevant properties of the `ItemInstance`.
+
+It is also responsible for defining the `AffixPickFunction`, that controls how Affixes are selected from the Affix Pool for an Item when it is being generated.
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="item-instance"></a>
+### 5.2.2 Item Instance
+
+An `ItemInstance` is an actual Item that has been generated from an `ItemDefinition`. Typically it will be owned by an `ItemDrop` Actor or an `ItemInventoryComponent`, Advanced Users might want to manage it in other ways but by default only those 2 classes can own an `ItemInstance` that gets created by an `ItemDropperComponent`.
+
+`ItemInstance`s are produced in accordance to the functions on the `ItemInstancingFunction` that is defined on the `ItemDefinition` that the `ItemInstance` is being generated from.
+
+They contain a list of all of their Affixes as well as the `ItemInstancingContext` that was present when it was generated. They also retain the `ItemDefinition` they were generated with in order to have direct access to that static data for gameplay and other purposes.
+
+![Item Instance](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemInstance.JPG)
+
+The Struct type of an `ItemInstance` can only be overridden from the C++ function `UItemInstancingFunction::MakeItemInstance`, due to Blueprint Structs not being able to support inheritance from a base type (as `ItemInstance`s must be derived from the `FItemInstance` struct type). If you need to introduce additional functionality or properties to an `ItemInstance` you would need to manage it in C++. Alternatively utilizing Affixes might be a sufficient method depending on your needs.
 
 **[⬆ Back to Top](#table-of-contents)**
 
