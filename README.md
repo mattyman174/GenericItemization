@@ -13,7 +13,7 @@ If you find the Generic Itemization Plugin useful to you, please [consider makin
 You can find my contact information on my website:
 [https://fissureentertainment.com/](https://fissureentertainment.com/)
 
-Latest compiled against: UE5.3.2
+**Latest compiled against: UE 5.3.2**
 
 <a name="table-of-contents"></a>
 ## Table of Contents
@@ -501,6 +501,8 @@ The best documentation for understanding the Instanced Structs is by far the sou
 [Struct Utils Plugin Source Code](https://github.com/EpicGames/UnrealEngine/tree/release/Engine/Plugins/Experimental/StructUtils)
 
 The Class Layout was created in the Online UML Diagramming tool [Draw.io](https://www.drawio.com/)
+
+Special thanks to the [Unreal Source](https://unrealsource.com/) Discord community for the support.
 
 If you found the Generic Itemization Plugin useful to you, please [consider making a donation](https://donate.stripe.com/3cs2c15SIbfXeoo5kk), although I provide it for free and with no expectations, I have put considerable time into this work and appreciate any contributions.
 
