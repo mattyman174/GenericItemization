@@ -44,6 +44,8 @@ Latest compiled against: UE5.3.2
 >>5.4 [Item Instancing Process](#item-instancing-process)  
 >>5.5 [Item Drop Actor](#item-drop-actor)  
 >>5.6 [Item Dropper Component](#item-dropper-component)  
+>>>5.6.1 [Item Instancing Context and the Context Provider Function](#item-instancing-context)  
+>>
 >>5.7 [Item Inventory Component](#item-inventory-component)  
 >
 >6 [Other Resources](#other-resources)  
@@ -261,6 +263,8 @@ Items are the lifeblood of the Generic Itemization Plugin and of games that util
 
 ![Items](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Items.JPG)
 
+**[⬆ Back to Top](#table-of-contents)**
+
 <a name="item-definition"></a>
 ### 5.2.1 Item Definition
 
@@ -463,6 +467,23 @@ It implements a single function `UItemDropperComponent::DropItems` which can be 
 It also has an `ItemDropClass` property that allows you to specify which `ItemDrop` Actor type you want it to spawn. This is useful for overriding the visual representation of an `ItemInstance` within the world. The Sample Project overrides this to provide an appropriate visualization of `ItemInstances` that have been dropped.
 
 ![Item Dropper Component](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemDropperComponent.JPG)
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="item-instancing-context"></a>
+### 5.6.1 Item Instancing Context and the Context Provider Function
+
+In order to feed additional data to the `Item Instancing Process` about information such as what `Level` and how much `MagicFind` (along with any other custom data you might need along the way) to apply to a particular Item that is being generated, the `ItemDropperComponent` provides a class property for defining the `Context Provider Function` which is an `UItemInstancingContextFunction` class type and feeds it an Instanced Struct `UserContextData` parameter through its `DropItems` function.
+
+![Drop Items and User Context Data](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/DropItemsUserContextData.JPG)
+
+The `UItemInstancingContextFunction` provides a single function called on its Class Default Object at the start of the `Item Instancing Process` to build a new `ItemInstancingContext` that is passed along every step of the `Item Instancing Process` and is available in almost all functions that are called along the way.
+
+![Build Item Instancing Context](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/BuildItemInstancingContext.JPG)
+
+The `ItemInstancingContext` is also copied onto every `ItemInstance` that is produced, so that Item knows the context information around when it was created.
+
+The `ItemInstancingContextFunction` can be overridden in both C++ and Blueprint and it is recommended that you do so in order to pass through information that may affect the outcome of the generation of an `ItemInstance`. The Sample Project does this as shown above, to appropriately fill the `ItemLevel` and `MagicFind` native properties of the `ItemInstancingContent` so that Items can be generated correctly according to those values.
 
 **[⬆ Back to Top](#table-of-contents)**
 
