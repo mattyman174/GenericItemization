@@ -12,10 +12,16 @@
 *.gch
 *.pch
 
+# Binary Files
+Binaries/*
+!Plugins/*/Binaries/*
+Plugins/*/Binaries/*/*.patch*
+
 # Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
+!Plugins/*/Binaries/*/*.dll
 
 # Fortran module files
 *.mod
@@ -45,10 +51,6 @@
 # Precompiled Assets
 SourceArt/**/*.png
 SourceArt/**/*.tga
-
-# Binary Files
-Binaries/*
-Plugins/*/Binaries/*
 
 # Builds
 Build/*
