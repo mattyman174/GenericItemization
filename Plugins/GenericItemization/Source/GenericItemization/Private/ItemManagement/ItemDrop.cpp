@@ -43,3 +43,13 @@ void AItemDrop::GetItemDefinitionStruct(FItemDefinition& OutItemDefinitionStruct
 		OutItemDefinitionStruct = ItemInstance.Get().ItemDefinition.Get();
 	}
 }
+
+bool AItemDrop::HasValidItemInstance() const
+{
+	return ItemInstance.IsValid() && ItemInstance.Get().IsValid();
+}
+
+bool AItemDrop::CanTakeItem_Implementation(UItemInventoryComponent* InventoryComponent) const
+{
+	return true;
+}

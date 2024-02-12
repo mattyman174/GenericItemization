@@ -19,6 +19,7 @@ class GENERICITEMIZATION_API AItemDrop : public AActor
 public:	
 
 	friend class UItemDropperComponent;
+	friend class UItemInventoryComponent;
 	
 	AItemDrop();
 
@@ -33,6 +34,14 @@ public:
 	/* Returns the ItemInstances ItemDefinition as the underlying Struct value. Make note, that this will slice any overridden data if you are not using FItemDefinition. */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Generic Itemization")
 	void GetItemDefinitionStruct(FItemDefinition& OutItemDefinitionStruct) const;
+
+	/* Returns true if this ItemDrop is representing a valid ItemInstance. */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Generic Itemization")
+	bool HasValidItemInstance() const;
+
+	/* Decides if the passed in Inventory can attempt to take this ItemDrop. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Generic Itemization")
+	bool CanTakeItem(UItemInventoryComponent* InventoryComponent) const;
 
 protected:
 

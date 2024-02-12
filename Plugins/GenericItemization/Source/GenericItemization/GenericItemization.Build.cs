@@ -24,6 +24,7 @@ public class GenericItemization : ModuleRules
             "Core",
 			"StructUtils",
 			"GameplayTags",
+            "NetCore",
         });
 
         PrivateDependencyModuleNames.AddRange(

@@ -52,10 +52,15 @@ protected:
 	virtual void BeginPlay();
 
 	/** Input handlers for SetDestination action. */
+	UFUNCTION(BlueprintNativeEvent)
 	void OnInputStarted();
+	UFUNCTION(BlueprintNativeEvent)
 	void OnSetDestinationTriggered();
+	UFUNCTION(BlueprintNativeEvent)
 	void OnSetDestinationReleased();
+	UFUNCTION(BlueprintNativeEvent)
 	void OnTouchTriggered();
+	UFUNCTION(BlueprintNativeEvent)
 	void OnTouchReleased();
 
 private:

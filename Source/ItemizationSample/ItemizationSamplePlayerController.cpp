@@ -60,13 +60,13 @@ void AItemizationSamplePlayerController::SetupInputComponent()
 	}
 }
 
-void AItemizationSamplePlayerController::OnInputStarted()
+void AItemizationSamplePlayerController::OnInputStarted_Implementation()
 {
 	StopMovement();
 }
 
 // Triggered every frame when the input is held down
-void AItemizationSamplePlayerController::OnSetDestinationTriggered()
+void AItemizationSamplePlayerController::OnSetDestinationTriggered_Implementation()
 {
 	// We flag that the input is being pressed
 	FollowTime += GetWorld()->GetDeltaSeconds();
@@ -98,7 +98,7 @@ void AItemizationSamplePlayerController::OnSetDestinationTriggered()
 	}
 }
 
-void AItemizationSamplePlayerController::OnSetDestinationReleased()
+void AItemizationSamplePlayerController::OnSetDestinationReleased_Implementation()
 {
 	// If it was a short press
 	if (FollowTime <= ShortPressThreshold)
@@ -112,13 +112,13 @@ void AItemizationSamplePlayerController::OnSetDestinationReleased()
 }
 
 // Triggered every frame when the input is held down
-void AItemizationSamplePlayerController::OnTouchTriggered()
+void AItemizationSamplePlayerController::OnTouchTriggered_Implementation()
 {
 	bIsTouch = true;
 	OnSetDestinationTriggered();
 }
 
-void AItemizationSamplePlayerController::OnTouchReleased()
+void AItemizationSamplePlayerController::OnTouchReleased_Implementation()
 {
 	bIsTouch = false;
 	OnSetDestinationReleased();

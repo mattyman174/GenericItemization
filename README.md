@@ -15,6 +15,8 @@ You can find my contact information on my website:
 
 **Latest compiled against: UE 5.3.2**
 
+[**Public Roadmap of future features**](https://trello.com/b/0KRMa5hg/generic-itemization-plugin)
+
 <a name="table-of-contents"></a>
 ## Table of Contents
 
@@ -594,7 +596,17 @@ The `ItemInstancingContextFunction` can be overridden in both C++ and Blueprint 
 <a name="item-inventory-component"></a>
 ### 5.7 Item Inventory Component
 
-The `UItemInventoryComponent` class is currently not implemented but is a planned feature for a future update. Its purpose would be to provide a mechanism to store a number of `ItemInstances` that might have come from, for example, `ItemDrop` Actors that were dropped within the world.
+The `UItemInventoryComponent` is a `USceneComponent` that is designed to be a container for `ItemInstance`s and be attached to any Actor. It implements various functions for managing taking, dropping and releasing `ItemInstance`s.
+
+It can contain any number of Items and is fully replicated across the Network. The `ItemInventoryComponent` utilizes a fast array type called `FFastItemInstancesContainer` to manage replicating Items. It does this via another container type called `FFastItemInstance` that holds the actual `ItemInstance` and a `UserContextData` Instanced Struct type for additional information.
+
+The Sample Project utilizes this component to facilitate the pickup of Items via the Mouse and to manage aspects of the Character Inventory.
+
+![Build Item Instancing Context](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemInventory.JPG)
+
+Both of these features of the Sample Project are separate `ItemInventoryComponent`s attached to the PlayerController.
+
+The `ItemInventoryComponent` does not deal with specific details of how a Player might interact with it, meaning that it does not concern itself with things like internal layout or integration with a User Interface. Those details are left to the User to handle. It is simply a replicated container of managed Items.
 
 **[⬆ Back to Top](#table-of-contents)**
 

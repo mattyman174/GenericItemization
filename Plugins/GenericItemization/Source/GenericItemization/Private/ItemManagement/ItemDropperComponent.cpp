@@ -10,6 +10,7 @@
 UItemDropperComponent::UItemDropperComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	ItemDropClass = AItemDrop::StaticClass();
 	ContextProviderFunction = UItemInstancingContextFunction::StaticClass();
@@ -17,6 +18,11 @@ UItemDropperComponent::UItemDropperComponent()
 
 bool UItemDropperComponent::DropItems_Implementation(FInstancedStruct UserContextData, TArray<AItemDrop*>& ItemDrops)
 {
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
 	if (!IsValid(ItemDropClass) || !IsValid(ContextProviderFunction))
 	{
 		return false;

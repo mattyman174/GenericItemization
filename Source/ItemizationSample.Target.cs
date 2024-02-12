@@ -12,7 +12,8 @@ public class ItemizationSampleTarget : TargetRules
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 		
 		bUseUnityBuild = false;
-		
-		ExtraModuleNames.Add("ItemizationSample");
+        bUseAdaptiveUnityBuild = false;
+
+        ExtraModuleNames.Add("ItemizationSample");
 	}
 }

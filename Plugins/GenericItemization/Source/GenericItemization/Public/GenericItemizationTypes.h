@@ -172,6 +172,22 @@ public:
 
 };
 
+USTRUCT(BlueprintType)
+struct FItemDefinitionUserData
+{
+    GENERATED_BODY()
+
+public:
+
+    /* The Category that this UserData should be assigned. Helps with identifying different data sets. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "Itemization.UserData"))
+    FGameplayTag Category;
+
+    /* The actual data. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    FInstancedStruct UserData;
+};
+
 /**
  * All static data that defines what an individual ItemInstance is.
  */
@@ -248,9 +264,18 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (RequiredAssetDataTags = "RowStructure=/Script/GenericItemization.AffixDefinitionEntry"))
     TObjectPtr<UDataTable> AffixPool;
 
-    /* Arbitrary Data that can contain whatever you like. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "Itemization.UserData"))
+    /**
+     * DEPRECATED.
+     * Please use CustomUserData instead. This will be removed in a later release.
+     * 
+     * Arbitrary Data that can contain whatever you like. 
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (DisplayName = "UserData_DEPRECATED", Categories = "Itemization.UserData", DeprecatedProperty, DeprecationMessage = "Please use CustomUserData instead. This will be removed in a later release."))
     TMap<FGameplayTag, FInstancedStruct> UserData;
+
+    /* Custom Data that can contain whatever you like. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TArray<FItemDefinitionUserData> CustomUserData;
 };
 
 /************************************************************************/

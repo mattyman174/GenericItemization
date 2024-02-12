@@ -12,6 +12,7 @@ public class ItemizationSampleEditorTarget : TargetRules
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 		
 		bUseUnityBuild = false;
+		bUseAdaptiveUnityBuild = false;
 		
 		ExtraModuleNames.Add("ItemizationSample");
 	}
