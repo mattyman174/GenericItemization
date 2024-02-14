@@ -49,6 +49,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (UIMin = "0", ClampMin = "0"))
     int32 NoPickChance = 0;
 
+    /* Contains a list of the bonus increase to selection of a particular Quality Type of Item. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "Itemization.QualityType"))
+    TMap<FGameplayTag, FItemQualityTypeBonuses> QualityTypeBonuses;
+
     /* The different types of tables we will query for Item Drops (usually an Item Drop Table or Item Definition Collection). */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BaseStruct = "/Script/GenericItemization.ItemDropTableType", ExcludeBaseStruct, ShowTreeView))
     TArray<TInstancedStruct<FItemDropTableType>> ItemDropTables;

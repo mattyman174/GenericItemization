@@ -18,6 +18,29 @@ class UItemInstancingFunction;
 /************************************************************************/
 
 /**
+ * 
+ */
+USTRUCT(BlueprintType)
+struct FItemQualityTypeBonuses
+{
+    GENERATED_BODY()
+
+public:
+
+    /**
+     * How much to reduce the Factor by for this QualityType when being selected for. 
+     * 
+     * The default implementation of QualityType selection operates on the basis that QualityTypes are rolled for
+     * separately and the first to have a Pick value of < 128 is chosen.
+     * 
+     * The AdjustedFactor changes the overall Pick value by that amount where 1024 forces it to 0 (will absolutely be selected, assuming a QualityType in front doesn't get selected first).
+     * A value of -1024 will likely cause the QualityType to be skipped during selection.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (/*UIMin = "-1024", ClampMin = "-1024", UIMax = "1024", ClampMax = "1024"*/))
+    int32 AdjustedFactor = 0;
+};
+
+/**
  * Represents the Ratio that a particular Item Quality Type can be selected for during the Item Instancing Process.
  */
 USTRUCT(BlueprintType)

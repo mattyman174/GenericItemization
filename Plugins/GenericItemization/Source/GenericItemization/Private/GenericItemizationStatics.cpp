@@ -9,6 +9,7 @@
 #include "InstancedStruct.h"
 #include "StructView.h"
 #include "Engine/DataTable.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 TOptional<TInstancedStruct<FItemDropTableType>> UGenericItemizationStatics::PickDropTableCollectionEntry(const TInstancedStruct<FItemDropTableCollectionRow>& DropTableCollectionEntry, const FInstancedStruct& ItemInstancingContext, bool bIncludeNoPick)
 {
@@ -298,7 +299,8 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FI
 	// =====================================================================================
 	// 2. Calculate the Affix Level. This affects what Affixes can be selected for later.
 
-	if (!InstancingFunctionCDO->CalculateAffixLevel(NewItemInstance, ItemInstancingContext, MutableItemInstance->AffixLevel))
+	bool bCalculatedAffixLevel = InstancingFunctionCDO->CalculateAffixLevel(NewItemInstance, ItemInstancingContext, MutableItemInstance->AffixLevel);
+	if (!bCalculatedAffixLevel)
 	{
 		return false;
 	}
@@ -307,7 +309,8 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FI
 	// 3. Roll for the QualityType from the ItemQualityRatio defined on the ItemDefinition. 
 	// This also affects what Affixes can be selected for later.
 
-	if (!InstancingFunctionCDO->SelectItemQualityType(NewItemInstance, ItemInstancingContext, MutableItemInstance->QualityType))
+	bool bSelectedItemQualityType = InstancingFunctionCDO->SelectItemQualityType(NewItemInstance, ItemInstancingContext, MutableItemInstance->QualityType);
+	if (!bSelectedItemQualityType)
 	{
 		return false;
 	}

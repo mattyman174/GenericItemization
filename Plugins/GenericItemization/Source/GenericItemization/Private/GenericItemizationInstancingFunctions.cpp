@@ -5,6 +5,7 @@
 #include "GenericItemizationTypes.h"
 #include "GenericItemizationInstanceTypes.h"
 #include "GenericItemizationPickFunctions.h"
+#include "GameplayTagsManager.h"
 
 UItemInstancingFunction::UItemInstancingFunction()
 {
@@ -99,17 +100,17 @@ bool UItemInstancingFunction::SelectItemQualityType_Implementation(const FInstan
 
 	// Iterate through each QualityType and perform a selection test to find out our desired QualityType.
 	// This determines the number and type of Affixes that we can select for.
-	FGameplayTag SelectedItemQualityType;
 	const int32 ItemLevel = ItemInstancePtr->ItemLevel;
 	const int32 QualityLevel = ItemDefinition.Get().QualityLevel;
 	const int32 MagicFind = ItemInstancingContextPtr->MagicFind;
-	const int32 DropTableQualityFactor = 0; // @TODO: Add in adjusted QualityFactor that comes from the Drop Table Entry?
 
 	for (const TInstancedStruct<FItemQualityRatioType>& ItemQualityRatio : ItemQualityRatios)
 	{
 		if (ItemQualityRatio.IsValid())
 		{
 			const FItemQualityRatioType& ItemQualityRatioType = ItemQualityRatio.Get();
+			const FItemQualityTypeBonuses* QualityTypeBonusesPtr = ItemInstancingContextPtr->DropTable->QualityTypeBonuses.Find(ItemQualityRatioType.QualityType);
+			const int32 DropTableQualityFactor = QualityTypeBonusesPtr ? QualityTypeBonusesPtr->AdjustedFactor : 0;
 			const int32 DiminishingReturnsFactor = ItemQualityRatioType.Factor;
 
 			// Seed the PickChance from the Ratio Type we are currently iterating.
@@ -133,29 +134,24 @@ bool UItemInstancingFunction::SelectItemQualityType_Implementation(const FInstan
 			}
 
 			// Decide if this Quality Type is the one we want.
-			FinalPickChance = ItemInstancePtr->ItemStream.RandHelper(FinalPickChance);
+			FinalPickChance = ItemInstancePtr->ItemStream.RandHelper(FMath::Clamp(FinalPickChance, 0, FinalPickChance));
 			if (FinalPickChance < 128)
 			{
 				// This Quality Type is successfully selected.
-				SelectedItemQualityType = ItemQualityRatioType.QualityType;
-				break;
+				OutQualityType = ItemQualityRatioType.QualityType;
+				return true;
 			}
 		}
 	}
 
 	// If we couldn't make a selection randomly. Select the last element by default.
-	if (!SelectedItemQualityType.IsValid())
+	const FItemQualityRatioType& ItemQualityRatioType = ItemQualityRatios.Last().Get();
+	if (!ItemQualityRatioType.QualityType.IsValid())
 	{
-		const FItemQualityRatioType& ItemQualityRatioType = ItemQualityRatios.Last().Get();
-		if (!ItemQualityRatioType.QualityType.IsValid())
-		{
-			return false;
-		}
-
-		SelectedItemQualityType = ItemQualityRatioType.QualityType;
+		return false;
 	}
 
-	OutQualityType = SelectedItemQualityType;
+	OutQualityType = ItemQualityRatioType.QualityType;
 	return true;
 }
 

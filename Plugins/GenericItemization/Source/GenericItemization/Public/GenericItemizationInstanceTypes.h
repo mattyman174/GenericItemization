@@ -7,6 +7,7 @@
 #include "GenericItemizationTypes.h"
 #include "Engine/NetSerialization.h"
 #include "Net/Serialization/FastArraySerializer.h"
+#include "GenericItemizationTableTypes.h"
 #include "GenericItemizationInstanceTypes.generated.h"
 
 /************************************************************************/
@@ -50,6 +51,9 @@ public:
     /* The amount of Magic Find bonus was snapshot in this context, this contributes to the tendency to find certain Item Quality Types. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (UIMin = "0", ClampMin = "0"))
     int32 MagicFind = 1;
+
+    /* The DropTable that might have been involved in the Pick for the ItemInstance being generated. */
+    const FItemDropTableCollectionEntry* DropTable;
 
 };
 
