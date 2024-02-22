@@ -7,6 +7,7 @@ FItemInstance::FItemInstance()
 	ItemSeed = -1;
 	ItemLevel = -1;
 	AffixLevel = -1;
+	StackCount = 1;
 }
 
 bool FItemInstance::HasAnyAffixOfType(const FGameplayTag& AffixType) const
@@ -45,7 +46,15 @@ void FFastItemInstancesContainer::PostReplicatedAdd(const TArrayView<int32>& Add
 
 void FFastItemInstancesContainer::PostReplicatedChange(const TArrayView<int32>& ChangedIndices, int32 FinalSize)
 {
-
+	for (const int32& Index : ChangedIndices)
+	{
+		const FFastItemInstance& FastItemInstance = ItemInstances[Index];
+		const FInstancedStruct& PostChangeItemInstance = FastItemInstance.ItemInstance;
+		if (Owner)
+		{
+			Owner->OnChangedItemInstance(FastItemInstance);
+		}
+	}
 }
 
 void FFastItemInstancesContainer::PreReplicatedRemove(const TArrayView<int32>& RemovedIndices, int32 FinalSize)
@@ -106,28 +115,48 @@ bool FFastItemInstancesContainer::RemoveItemInstance(const FGuid& ItemInstance)
 	return false;
 }
 
-void FFastItemInstancesContainer::GetItemInstances(TArray<FInstancedStruct>& OutItemInstances) const
+TArray<FInstancedStruct> FFastItemInstancesContainer::GetItemInstances() const
 {
-	OutItemInstances.Empty(ItemInstances.Num());
+	TArray<FInstancedStruct> Result;
+	Result.Reserve(ItemInstances.Num());
 
 	for (const FFastItemInstance& ItemInstance : ItemInstances)
 	{
-		OutItemInstances.Add(ItemInstance.ItemInstance);
+		Result.Add(ItemInstance.ItemInstance);
 	}
+
+	return Result;
 }
 
-bool FFastItemInstancesContainer::GetFastItemInstance(const FGuid& ItemInstance, FFastItemInstance& OutFastItemInstance) const
+FFastItemInstance FFastItemInstancesContainer::GetItemInstance(const FGuid& Item, bool& bSuccessful) const
 {
 	for (const FFastItemInstance& FastItemInstance : ItemInstances)
 	{
-		if (FastItemInstance.ItemInstance.IsValid() && FastItemInstance.ItemInstance.GetPtr<FItemInstance>() && FastItemInstance.ItemInstance.GetPtr<FItemInstance>()->ItemId == ItemInstance)
+		const FItemInstance* ItemInstancePtr = FastItemInstance.ItemInstance.GetPtr<FItemInstance>();
+		if (ItemInstancePtr && ItemInstancePtr->ItemId == Item)
 		{
-			OutFastItemInstance = FastItemInstance;
-			return true;
+			bSuccessful = true;
+			return FastItemInstance;
 		}
 	}
 
-	return false;
+	bSuccessful = false;
+	return FFastItemInstance();
+}
+
+FFastItemInstance* FFastItemInstancesContainer::GetMutableItemInstance(const FGuid& Item)
+{
+	for (FFastItemInstance& ItemInstance : ItemInstances)
+	{
+		const FItemInstance* ItemInstancePtr = ItemInstance.ItemInstance.GetPtr<FItemInstance>();
+		if (ItemInstancePtr && ItemInstancePtr->ItemId == Item)
+		{
+			MarkItemDirty(ItemInstance);
+			return &ItemInstance;
+		}
+	}
+
+	return nullptr;
 }
 
 int32 FFastItemInstancesContainer::GetNum() const

@@ -20,3 +20,8 @@ FItemDefinition::FItemDefinition()
 {
 	InstancingFunction = UItemInstancingFunction::StaticClass();
 }
+
+bool FItemDefinition::IsSameItemDefinition(const FItemDefinition& Other) const
+{
+	return ItemType == Other.ItemType && ItemIdentifier == Other.ItemIdentifier;
+}

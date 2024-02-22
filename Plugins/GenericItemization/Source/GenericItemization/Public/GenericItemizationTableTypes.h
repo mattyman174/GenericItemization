@@ -49,6 +49,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (UIMin = "0", ClampMin = "0"))
     int32 NoPickChance = 0;
 
+    /* List of arbitrary Mutators from this DropTable that are appended to the ItemInstancingContext. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (DisplayName = "Mutators", Categories = "Itemization.Mutator"))
+    TMap<FGameplayTag, FItemDropTableMutator> CustomMutators;
+
     /* Contains a list of the bonus increase to selection of a particular Quality Type of Item. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "Itemization.QualityType"))
     TMap<FGameplayTag, FItemQualityTypeBonuses> QualityTypeBonuses;

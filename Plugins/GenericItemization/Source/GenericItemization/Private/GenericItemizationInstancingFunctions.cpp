@@ -194,6 +194,15 @@ bool UItemInstancingFunction::DetermineAffixCount_Implementation(const FInstance
 	return true;
 }
 
+bool UItemInstancingFunction::CalculateStackCount_Implementation(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, int32& OutStackCount) const
+{
+	// This function is designed to be overridden, as the default implementation for ItemInstance stacking is not enabled.
+	// Individual Items should manage their own algorithm for what their StackCount should be.
+	// The default value for StackCount will remain at 1. It should always be >= 1.
+	OutStackCount = 1;
+	return true;
+}
+
 bool UItemInstancingContextFunction::BuildItemInstancingContext_Implementation(const UItemDropperComponent* ItemDropperComponent, const FInstancedStruct& UserContextData, FInstancedStruct& OutItemInstancingContext)
 {
 	// Override to provide your own context. 

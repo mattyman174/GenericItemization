@@ -28,6 +28,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TInstancedStruct<FAffixDefinition> AffixDefinition;
 
+    /* Was this AffixInstance from a predefined Affix on the ItemDefinition for the ItemInstance its applied to. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    bool bPredefinedAffix = false;
+
 };
 
 /************************************************************************/
@@ -51,6 +55,10 @@ public:
     /* The amount of Magic Find bonus was snapshot in this context, this contributes to the tendency to find certain Item Quality Types. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (UIMin = "0", ClampMin = "0"))
     int32 MagicFind = 1;
+
+    /* Mutators that were applied to this Instancing Context during the Item Instancing Process. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TMap<FGameplayTag, FItemDropTableMutator> Mutators;
 
     /* The DropTable that might have been involved in the Pick for the ItemInstance being generated. */
     const FItemDropTableCollectionEntry* DropTable;
@@ -104,6 +112,10 @@ public:
     /* The Context information around which this ItemInstance was called to be generated. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TInstancedStruct<FItemInstancingContext> InstancingContext;
+
+    /* The number of stacks of this Item. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    int32 StackCount;
 
     bool HasAnyAffixOfType(const FGameplayTag& AffixType) const;
 
@@ -197,12 +209,16 @@ public:
     void AddItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& UserContextData);
 
     /* Removes an Item from the container. */
-    bool RemoveItemInstance(const FGuid& ItemInstance);
+    bool RemoveItemInstance(const FGuid& Item);
 
-    /* Returns all of the ItemInstances within the container. */
-    void GetItemInstances(TArray<FInstancedStruct>& OutItemInstances) const;
+    /* Returns a copy of all of the ItemInstances within the container. */
+    TArray<FInstancedStruct> GetItemInstances() const;
 
-    bool GetFastItemInstance(const FGuid& ItemInstance, FFastItemInstance& OutFastItemInstance) const;
+    /* Returns a copy of the ItemInstance, if it exists. */
+    FFastItemInstance GetItemInstance(const FGuid& Item, bool& bSuccessful) const;
+
+    /* Returns the mutable ItemInstance, marks it dirty so changes are replicated. */
+    FFastItemInstance* GetMutableItemInstance(const FGuid& Item);
 
     /* Returns the number of ItemInstances in the container. */
     int32 GetNum() const;

@@ -43,10 +43,11 @@ bool UItemDropperComponent::DropItems_Implementation(FInstancedStruct UserContex
 	FInstancedStruct ItemInstancingContext;
 	if (ContextProviderFunctionCDO->BuildItemInstancingContext(this, UserContextData, ItemInstancingContext))
 	{
-		// Embed the DropTable for future context.
+		// Embed the DropTable and Mutators for future context.
 		if (FItemInstancingContext* ItemInstancingContextPtr = ItemInstancingContext.GetMutablePtr<FItemInstancingContext>())
 		{
 			ItemInstancingContextPtr->DropTable = DropTableCollection;
+			ItemInstancingContextPtr->Mutators.Append(DropTableCollection->CustomMutators);
 		}
 
 		// Grab all of the ItemDefinitions that we will be creating ItemInstances for.

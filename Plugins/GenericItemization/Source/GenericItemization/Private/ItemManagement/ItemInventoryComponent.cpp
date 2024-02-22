@@ -4,6 +4,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 #include "ItemManagement/ItemDrop.h"
+#include "GenericItemizationStatics.h"
+#include "ItemManagement/ItemStackSettings.h"
 
 UItemInventoryComponent::UItemInventoryComponent()
 {
@@ -175,11 +177,269 @@ bool UItemInventoryComponent::ReleaseItem(FGuid ItemToRelease, FInstancedStruct&
 	return false;
 }
 
+bool UItemInventoryComponent::CanSplitItemStack_Implementation(FGuid ItemToSplit, int32 SplitCount, int32& OutRemainder)
+{
+	bool bHasItemToSplit = false;
+	const FInstancedStruct& ItemToSplitItemInstance = GetItem(ItemToSplit, bHasItemToSplit);
+	if (!bHasItemToSplit)
+	{
+		OutRemainder = 0;
+		return false;
+	}
+
+	const FItemInstance& ItemInstance = ItemToSplitItemInstance.Get<FItemInstance>();
+	const int32 StackCount = ItemInstance.StackCount;
+	OutRemainder = StackCount - SplitCount;
+	return OutRemainder >= 1;
+}
+
+bool UItemInventoryComponent::SplitItemStack(FGuid ItemToSplit, int32 SplitCount, FInstancedStruct& OutSplitItemInstance)
+{
+	int32 Remainder;
+	if (!CanSplitItemStack(ItemToSplit, SplitCount, Remainder))
+	{
+		return false;
+	}
+
+	FFastItemInstance* FastItemInstanceToSplit = ItemInstances.GetMutableItemInstance(ItemToSplit);
+	if (!FastItemInstanceToSplit)
+	{
+		return false;
+	}
+
+	// Create the new Split ItemInstance that represents the Item we split and assign it the a new StackCount as the SplitCount.
+	const bool bGeneratedNewItemInstance = UGenericItemizationStatics::GenerateItemInstanceFromTemplate(FastItemInstanceToSplit->ItemInstance, OutSplitItemInstance);
+	if (!bGeneratedNewItemInstance)
+	{
+		return false;
+	}
+
+	OutSplitItemInstance.GetMutable<FItemInstance>().StackCount = SplitCount;
+
+	// Then modify the original Item that we split from so that it has the remaining StackCount completing the split.
+	FastItemInstanceToSplit->ItemInstance.GetMutable<FItemInstance>().StackCount = Remainder;
+
+	return true;
+}
+
+bool UItemInventoryComponent::CanStackItems(UItemInventoryComponent* ItemToStackFromInventory, FGuid ItemToStackFrom, FGuid ItemToStackWith, bool& bOutItemToStackFromWillExpunge)
+{
+	if (!IsValid(ItemToStackFromInventory))
+	{
+		return false;
+	}
+
+	FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetMutableItemInstance(ItemToStackWith);
+	if (!FastItemToStackWithInstance)
+	{
+		return false;
+	}
+
+	const FItemInstance* ItemToStackWithPtr = FastItemToStackWithInstance->ItemInstance.GetPtr<FItemInstance>();
+	if (!ItemToStackWithPtr)
+	{
+		return false;
+	}
+
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->ItemDefinition.GetPtr();
+	if (!ItemToStackWithItemDefinitionPtr)
+	{
+		return false;
+	}
+
+	bool bItemToStackFromInstanceSuccessful = false;
+	FInstancedStruct ItemToStackFromInstance = ItemToStackFromInventory->GetItem(ItemToStackFrom, bItemToStackFromInstanceSuccessful);
+	if (!bItemToStackFromInstanceSuccessful)
+	{
+		return false;
+	}
+
+	// Find out if we can actually stack these Items and if anything will remain.
+	int32 StackRemainder = 0;
+	const UItemStackSettings* const ItemToStackWithStackSettingsCDO = ItemToStackWithItemDefinitionPtr->StackSettings.GetDefaultObject();
+	if (!ItemToStackWithStackSettingsCDO || !ItemToStackWithStackSettingsCDO->CanStackWith(ItemToStackFromInstance, FastItemToStackWithInstance->ItemInstance, StackRemainder))
+	{
+		return false;
+	}
+
+	bOutItemToStackFromWillExpunge = StackRemainder < 1;
+	return true;
+}
+
+bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* ItemToStackFromInventory, FGuid ItemToStackFrom, FGuid ItemToStackWith, bool& bOutItemToStackFromWasExpunged)
+{
+	if (!IsValid(ItemToStackFromInventory))
+	{
+		return false;
+	}
+
+	FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetMutableItemInstance(ItemToStackWith);
+	if (!FastItemToStackWithInstance)
+	{
+		return false;
+	}
+
+	FItemInstance* MutableItemToStackWithPtr = FastItemToStackWithInstance->ItemInstance.GetMutablePtr<FItemInstance>();
+	if (!MutableItemToStackWithPtr)
+	{
+		return false;
+	}
+
+	FItemInstance& MutableItemToStackWith = FastItemToStackWithInstance->ItemInstance.GetMutable<FItemInstance>();
+
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = MutableItemToStackWithPtr->ItemDefinition.GetPtr();
+	if (!ItemToStackWithItemDefinitionPtr)
+	{
+		return false;
+	}
+
+	bool bItemToStackFromInstanceSuccessful = false;
+	FInstancedStruct ItemToStackFromInstance = ItemToStackFromInventory->GetItem(ItemToStackFrom, bItemToStackFromInstanceSuccessful);
+	if (!bItemToStackFromInstanceSuccessful)
+	{
+		return false;
+	}
+
+	// Find out if we can actually stack these Items and if anything will remain.
+	int32 StackRemainder = 0;
+	const UItemStackSettings* const ItemToStackWithStackSettingsCDO = ItemToStackWithItemDefinitionPtr->StackSettings.GetDefaultObject();
+	if (!ItemToStackWithStackSettingsCDO || !ItemToStackWithStackSettingsCDO->CanStackWith(ItemToStackFromInstance, FastItemToStackWithInstance->ItemInstance, StackRemainder))
+	{
+		return false;
+	}
+
+	const FItemInstance* const ItemToStackFromPtr = ItemToStackFromInstance.GetPtr<FItemInstance>();
+	if (!ItemToStackFromPtr)
+	{
+		return false;
+	}
+
+	const int32 ItemToStackFromStackCount = ItemToStackFromPtr->StackCount;
+	const bool bPerformDeduction = StackRemainder >= 1;
+	bOutItemToStackFromWasExpunged = !bPerformDeduction;
+
+	if (bPerformDeduction)
+	{
+		FFastItemInstance* FastItemToStackFromInstance = ItemToStackFromInventory->ItemInstances.GetMutableItemInstance(ItemToStackFrom);
+		if (!FastItemToStackFromInstance)
+		{
+			return false;
+		}
+
+		FItemInstance* MutableItemToStackFromPtr = FastItemToStackFromInstance->ItemInstance.GetMutablePtr<FItemInstance>();
+		if (!MutableItemToStackFromPtr)
+		{
+			return false;
+		}
+
+		// Since there is a remainder after the stacking operation, the ItemToStackFrom needs to be updated to reflect that change.
+		MutableItemToStackFromPtr->StackCount = StackRemainder;
+	}
+	else
+	{
+		// Release and reset the ItemToStackFrom, as we are effectively destroying it since all of its stacks will be removed.
+		FInstancedStruct ExpungedItemToStackFrom;
+		ItemToStackFromInventory->ReleaseItem(ItemToStackFrom, ExpungedItemToStackFrom);
+		ExpungedItemToStackFrom.Reset();
+	}
+
+	// Grant the ItemToStackWith all of the stacks that it is receiving.
+	MutableItemToStackWith.StackCount += ItemToStackFromStackCount - FMath::Clamp(StackRemainder, 0, ItemToStackFromStackCount);
+
+	return true;
+}
+
+bool UItemInventoryComponent::StackItemFromItemDrop(AItemDrop* ItemToStackFromItemDrop, FGuid ItemToStackWith, bool& bOutItemToStackFromWasExpunged, bool bDestroyItemDrop /*= true*/)
+{
+	if (!IsValid(ItemToStackFromItemDrop))
+	{
+		return false;
+	}
+
+	FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetMutableItemInstance(ItemToStackWith);
+	if (!FastItemToStackWithInstance)
+	{
+		return false;
+	}
+
+	FItemInstance* MutableItemToStackWithPtr = FastItemToStackWithInstance->ItemInstance.GetMutablePtr<FItemInstance>();
+	if (!MutableItemToStackWithPtr)
+	{
+		return false;
+	}
+
+	FItemInstance& MutableItemToStackWith = FastItemToStackWithInstance->ItemInstance.GetMutable<FItemInstance>();
+
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = MutableItemToStackWithPtr->ItemDefinition.GetPtr();
+	if (!ItemToStackWithItemDefinitionPtr)
+	{
+		return false;
+	}
+
+	TInstancedStruct<FItemInstance> ItemToStackFromInstance;
+	ItemToStackFromItemDrop->GetItemInstance(ItemToStackFromInstance);
+	if (!ItemToStackFromInstance.IsValid())
+	{
+		return false;
+	}
+
+	FInstancedStruct ImmutableItemToStackFromInstance;
+	ImmutableItemToStackFromInstance.InitializeAs(ItemToStackFromInstance.GetScriptStruct(), ItemToStackFromInstance.GetMemory());
+
+	// Find out if we can actually stack these Items and if anything will remain.
+	int32 StackRemainder = 0;
+	const UItemStackSettings* const ItemToStackWithStackSettingsCDO = ItemToStackWithItemDefinitionPtr->StackSettings.GetDefaultObject();
+	if (!ItemToStackWithStackSettingsCDO || !ItemToStackWithStackSettingsCDO->CanStackWith(ImmutableItemToStackFromInstance, FastItemToStackWithInstance->ItemInstance, StackRemainder))
+	{
+		return false;
+	}
+
+	const FItemInstance* const ItemToStackFromPtr = ItemToStackFromInstance.GetPtr();
+	if (!ItemToStackFromPtr)
+	{
+		return false;
+	}
+
+	const int32 ItemToStackFromStackCount = ItemToStackFromPtr->StackCount;
+	const bool bPerformDeduction = StackRemainder >= 1;
+	bOutItemToStackFromWasExpunged = !bPerformDeduction;
+
+	if (bPerformDeduction)
+	{
+		// Since there is a remainder after the stacking operation, the ItemToStackFrom needs to be updated to reflect that change.
+		ItemToStackFromInstance.GetMutablePtr()->StackCount = StackRemainder;
+
+		// Because we changed the ItemToStackFrom, we should re-drop it as a new ItemDrop so that it can reflect these changes.
+		AItemDrop* NewItemDrop = nullptr;
+		const FTransform SpawnTransform = FTransform(ItemToStackFromItemDrop->GetActorRotation(), ItemToStackFromItemDrop->GetActorLocation());
+		NewItemDrop = GetWorld()->SpawnActorDeferred<AItemDrop>(ItemDropClass, SpawnTransform, GetOwner(), nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		NewItemDrop->ItemInstance.InitializeAsScriptStruct(ItemToStackFromInstance.GetScriptStruct(), ItemToStackFromInstance.GetMemory());
+		UGameplayStatics::FinishSpawningActor(NewItemDrop, SpawnTransform);
+
+		// Reset and Destroy the ItemToStackFrom that we originally came from as the NewItemDrop is taking its place.
+		ItemToStackFromInstance.Reset();
+		ItemToStackFromItemDrop->Destroy(true);
+	}
+	else
+	{
+		// Reset the ItemToStackFrom, as we are effectively destroying it since all of its stacks will be removed.
+		ItemToStackFromInstance.Reset();
+
+		if (bDestroyItemDrop)
+		{
+			ItemToStackFromItemDrop->Destroy(true);
+		}
+	}
+
+	// Grant the ItemToStackWith all of the stacks that it is receiving.
+	MutableItemToStackWith.StackCount += ItemToStackFromStackCount - FMath::Clamp(StackRemainder, 0, ItemToStackFromStackCount);
+
+	return true;
+}
+
 TArray<FInstancedStruct> UItemInventoryComponent::GetItems()
 {
-	TArray<FInstancedStruct> OutItems;
-	ItemInstances.GetItemInstances(OutItems);
-	return OutItems;
+	return ItemInstances.GetItemInstances();
 }
 
 TArray<FFastItemInstance> UItemInventoryComponent::GetItemsWithContext()
@@ -191,26 +451,14 @@ TArray<FFastItemInstance> UItemInventoryComponent::GetItemsWithContext()
 
 FInstancedStruct UItemInventoryComponent::GetItem(FGuid ItemId, bool& bSuccessful)
 {
-	FFastItemInstance FastItemInstance;
-	if (ItemInstances.GetFastItemInstance(ItemId, FastItemInstance))
-	{
-		bSuccessful = true;
-		return FastItemInstance.ItemInstance;
-	}
-
-	return FInstancedStruct();
+	const FFastItemInstance ItemInstance = ItemInstances.GetItemInstance(ItemId, bSuccessful);
+	return bSuccessful ? ItemInstance.ItemInstance : FInstancedStruct();
 }
 
 FInstancedStruct UItemInventoryComponent::GetItemContextData(FGuid ItemId, bool& bSuccessful)
 {
-	FFastItemInstance FastItemInstance;
-	if (ItemInstances.GetFastItemInstance(ItemId, FastItemInstance))
-	{
-		bSuccessful = true;
-		return FastItemInstance.UserContextData;
-	}
-
-	return FInstancedStruct();
+	const FFastItemInstance ItemInstance = ItemInstances.GetItemInstance(ItemId, bSuccessful);
+	return bSuccessful ? ItemInstance.UserContextData : FInstancedStruct();
 }
 
 int32 UItemInventoryComponent::GetNumItems() const
@@ -234,6 +482,11 @@ void UItemInventoryComponent::K2_OnAddedItem_Implementation(const FInstancedStru
 	// Left empty intentionally to be overridden.
 }
 
+void UItemInventoryComponent::K2_OnChangedItem_Implementation(const FInstancedStruct& Item, const FInstancedStruct& UserContextData)
+{
+	// Left empty intentionally to be overridden.
+}
+
 void UItemInventoryComponent::K2_OnRemovedItem_Implementation(const FInstancedStruct& Item, const FInstancedStruct& UserContextData)
 {
 	// Left empty intentionally to be overridden.
@@ -246,6 +499,15 @@ void UItemInventoryComponent::OnAddedItemInstance(const FFastItemInstance& FastI
 	const FInstancedStruct& ItemInstance = FastItemInstance.ItemInstance;
 	OnItemTakenDelegate.Broadcast(this, ItemInstance, FastItemInstance.UserContextData);
 	K2_OnAddedItem(ItemInstance, FastItemInstance.UserContextData);
+}
+
+void UItemInventoryComponent::OnChangedItemInstance(const FFastItemInstance& FastItemInstance)
+{
+	GetOwner()->ForceNetUpdate();
+
+	const FInstancedStruct& ItemInstance = FastItemInstance.ItemInstance;
+	OnItemChangedDelegate.Broadcast(this, ItemInstance, FastItemInstance.UserContextData);
+	K2_OnChangedItem(ItemInstance, FastItemInstance.UserContextData);
 }
 
 void UItemInventoryComponent::OnRemovedItemInstance(const FFastItemInstance& FastItemInstance)

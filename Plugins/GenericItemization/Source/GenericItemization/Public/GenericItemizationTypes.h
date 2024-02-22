@@ -12,10 +12,26 @@
 class UItemDefinitionCollectionPickFunction;
 class UItemDropTableCollectionPickFunction;
 class UItemInstancingFunction;
+class UItemStackSettings;
 
 /************************************************************************/
 /* Items
 /************************************************************************/
+
+/**
+ * 
+ */
+USTRUCT(BlueprintType)
+struct FItemDropTableMutator
+{
+    GENERATED_BODY()
+
+public:
+
+    /* The value of this Mutator. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float Value;
+};
 
 /**
  * 
@@ -36,7 +52,7 @@ public:
      * The AdjustedFactor changes the overall Pick value by that amount where 1024 forces it to 0 (will absolutely be selected, assuming a QualityType in front doesn't get selected first).
      * A value of -1024 will likely cause the QualityType to be skipped during selection.
      */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (/*UIMin = "-1024", ClampMin = "-1024", UIMax = "1024", ClampMax = "1024"*/))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (UIMin = "-1024", ClampMin = "-1024", UIMax = "1024", ClampMax = "1024"))
     int32 AdjustedFactor = 0;
 };
 
@@ -227,9 +243,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (NoClear))
     TSubclassOf<UItemInstancingFunction> InstancingFunction;
 
-    /* The name of this specific Item. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    /* The display name of this specific Item. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (DisplayName = "Item Display Name"))
     FText ItemName;
+
+    /* The identifying name of this Item. In most cases you should keep this unique. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    FName ItemIdentifier;
 
     /**
      * The Item Type of this particular Item. 
@@ -287,18 +307,16 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (RequiredAssetDataTags = "RowStructure=/Script/GenericItemization.AffixDefinitionEntry"))
     TObjectPtr<UDataTable> AffixPool;
 
-    /**
-     * DEPRECATED.
-     * Please use CustomUserData instead. This will be removed in a later release.
-     * 
-     * Arbitrary Data that can contain whatever you like. 
-     */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (DisplayName = "UserData_DEPRECATED", Categories = "Itemization.UserData", DeprecatedProperty, DeprecationMessage = "Please use CustomUserData instead. This will be removed in a later release."))
-    TMap<FGameplayTag, FInstancedStruct> UserData;
-
     /* Custom Data that can contain whatever you like. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TArray<FItemDefinitionUserData> CustomUserData;
+
+    /* Describes how ItemInstances of this ItemDefinition can be stacked. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TSubclassOf<UItemStackSettings> StackSettings;
+
+    /* Returns true if Other is the same as this ItemDefinition. */
+    bool IsSameItemDefinition(const FItemDefinition& Other) const;
 };
 
 /************************************************************************/

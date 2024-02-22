@@ -11,6 +11,7 @@
 class AItemDrop;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemTakenSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemChangedSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemRemovedSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
 
 /**
@@ -32,8 +33,12 @@ public:
 	virtual void BeginPlay() override;
 
 	/* Called when the Inventory received a new ItemInstance to manage. */
-	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Taken"))
+	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Added"))
 	FItemInventoryComponentItemTakenSignature OnItemTakenDelegate;
+
+	/* Called when the Inventory had an ItemInstance it manages change. */
+	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Changed"))
+	FItemInventoryComponentItemChangedSignature OnItemChangedDelegate;
 
 	/* Called when the Inventory dropped an ItemInstance that it was managing. */
 	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Removed"))
@@ -86,6 +91,67 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
 	bool ReleaseItem(FGuid ItemToRelease, FInstancedStruct& OutItem);
 
+	/**
+	 * Checks if the ItemToSplit can have SplitCount split from it.
+	 * 
+	 * @param ItemToSplit		The Id of the ItemInstance we want to split.
+	 * @param SplitCount		How much from the StackCount to split from the ItemInstance.
+	 * @param OutRemainder		How much would remain of the ItemToSplit if a split operation was to be executed.
+	 * @return					True if the split would be successful.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Generic Itemization")
+	bool CanSplitItemStack(FGuid ItemToSplit, int32 SplitCount, int32& OutRemainder);
+
+	/**
+	 * Splits the ItemToSplit into a new ItemInstance with a StackCount of SplitCount. Leaving the ItemToSplit with the remainder.
+	 * The OutSplitItemInstance is not owned by the InventoryComponent, it is not managed at all at this point. You must manage it
+	 * before it goes out of scope or it will be lost.
+	 * 
+	 * @param ItemToSplit			The Id of the ItemInstance we want to split.
+	 * @param SplitCount			How much from the StackCount to split from the ItemInstance.
+	 * @param OutSplitItemInstance	The new ItemInstance that was created for the split.
+	 * @return						True if the split was successful.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
+	bool SplitItemStack(FGuid ItemToSplit, int32 SplitCount, FInstancedStruct& OutSplitItemInstance);
+
+	/**
+	 * Takes an ItemInstance and thereafter manages it with this Inventory Component.
+	 * This function will call Reset on the Item, it first makes a copy of it to be managed by the
+	 *
+	 * @param ItemToStackFromInventory			The Inventory Component that manages the ItemToStackFrom.
+	 * @param ItemToStackFrom					The Id of the Item that will be stacked onto the ItemToStackWith.
+	 * @param ItemToStackWith					The Id of the Item that we want to add to its stack.
+	 * @param bOutItemToStackFromWillExpunge	True if the ItemToStackFrom will be completely expunged because of the stacking operation.
+	 * @return									True if stacking these Items can occur.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
+	bool CanStackItems(UItemInventoryComponent* ItemToStackFromInventory, FGuid ItemToStackFrom, FGuid ItemToStackWith, bool& bOutItemToStackFromWillExpunge);
+
+	/**
+	 * Attempts to Stack an Item onto another where the Item comes from an ItemInventoryComponent.
+	 *
+	 * @param ItemToStackFromInventory			The Inventory Component that manages the ItemToStackFrom.
+	 * @param ItemToStackFrom					The Id of the Item that will be stacked onto the ItemToStackWith.
+	 * @param ItemToStackWith					The Id of the Item that we want to add to its stack.
+	 * @param bOutItemToStackFromWasExpunged	Was the ItemToStackFrom completely expunged because of the stacking operation.
+	 * @return									True if the stacking was successful.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
+	virtual bool StackItemFromInventory(UItemInventoryComponent* ItemToStackFromInventory, FGuid ItemToStackFrom, FGuid ItemToStackWith, bool& bOutItemToStackFromWasExpunged);
+
+	/**
+	 * Attempts to Stack an Item onto another where the Item comes from an ItemDrop.
+	 *
+	 * @param ItemToStackFromItemDrop			The ItemDrop that manages the ItemToStackFrom.
+	 * @param ItemToStackWith					The Id of the Item that we want to add to its stack.
+	 * @param bOutItemToStackFromWasExpunged	Was the ItemToStackFrom completely expunged because of the stacking operation.
+	 * @param bDestroyItemDrop					True if the ItemDrop Actor will have its Destroy() function called on it if the ItemToStackFrom was expunged.
+	 * @return									True if the stacking was successful.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
+	virtual bool StackItemFromItemDrop(AItemDrop* ItemToStackFromItemDrop, FGuid ItemToStackWith, bool& bOutItemToStackFromWasExpunged, bool bDestroyItemDrop = true);
+
 	/* Returns a copy of all of the Items this Inventory currently contains. */
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
 	TArray<FInstancedStruct> GetItems();
@@ -130,6 +196,10 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Added Item"))
 	void K2_OnAddedItem(const FInstancedStruct& Item, const FInstancedStruct& UserContextData);
 
+	/* Called when the Inventory has an ItemInstance that changed. */
+	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Changed Item"))
+	void K2_OnChangedItem(const FInstancedStruct& Item, const FInstancedStruct& UserContextData);
+
 	/* Called when the Inventory dropped an ItemInstance that it was managing. */
 	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Removed Item"))
 	void K2_OnRemovedItem(const FInstancedStruct& Item, const FInstancedStruct& UserContextData);
@@ -138,6 +208,9 @@ private:
 
 	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Item being Added. */
 	void OnAddedItemInstance(const FFastItemInstance& FastItemInstance);
+
+	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Item being Changed. */
+	void OnChangedItemInstance(const FFastItemInstance& FastItemInstance);
 
 	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Item being Removed. */
 	void OnRemovedItemInstance(const FFastItemInstance& FastItemInstance);

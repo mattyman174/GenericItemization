@@ -298,82 +298,127 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FI
 
 	// =====================================================================================
 	// 2. Calculate the Affix Level. This affects what Affixes can be selected for later.
-
-	bool bCalculatedAffixLevel = InstancingFunctionCDO->CalculateAffixLevel(NewItemInstance, ItemInstancingContext, MutableItemInstance->AffixLevel);
-	if (!bCalculatedAffixLevel)
 	{
-		return false;
+		bool bCalculatedAffixLevel = InstancingFunctionCDO->CalculateAffixLevel(NewItemInstance, ItemInstancingContext, MutableItemInstance->AffixLevel);
+		if (!bCalculatedAffixLevel)
+		{
+			return false;
+		}
 	}
 	
 	// =====================================================================================
 	// 3. Roll for the QualityType from the ItemQualityRatio defined on the ItemDefinition. 
 	// This also affects what Affixes can be selected for later.
-
-	bool bSelectedItemQualityType = InstancingFunctionCDO->SelectItemQualityType(NewItemInstance, ItemInstancingContext, MutableItemInstance->QualityType);
-	if (!bSelectedItemQualityType)
 	{
-		return false;
+		bool bSelectedItemQualityType = InstancingFunctionCDO->SelectItemQualityType(NewItemInstance, ItemInstancingContext, MutableItemInstance->QualityType);
+		if (!bSelectedItemQualityType)
+		{
+			return false;
+		}
 	}
 
 	// =====================================================================================
 	// 4. Roll for the number of Affixes from the AffixCountRatio on the ItemDefinition.
 	// Generate all the AffixInstances for the ItemInstance based on the information we generated earlier.
-
-	// Add all our predefined Affixes.
-	for (const FDataTableRowHandle& PredefinedAffix : ItemInstanceItemDefinition.Get().PredefinedAffixes)
 	{
-		const FAffixDefinitionEntry* AffixDefinitionEntryPtr = PredefinedAffix.GetRow<FAffixDefinitionEntry>(FString());
-		if (IsValid(PredefinedAffix.DataTable)
-			&& PredefinedAffix.DataTable->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct())
-			&& AffixDefinitionEntryPtr)
+		// Add all our predefined Affixes.
+		for (const FDataTableRowHandle& PredefinedAffix : ItemInstanceItemDefinition.Get().PredefinedAffixes)
 		{
-			const TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(AffixDefinitionEntryPtr->AffixDefinition, NewItemInstance, ItemInstancingContext);
-			if (AffixInstance.IsSet() && AffixInstance.GetValue().IsValid())
+			const FAffixDefinitionEntry* AffixDefinitionEntryPtr = PredefinedAffix.GetRow<FAffixDefinitionEntry>(FString());
+			if (IsValid(PredefinedAffix.DataTable)
+				&& PredefinedAffix.DataTable->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct())
+				&& AffixDefinitionEntryPtr)
 			{
-				// Successfully generated the Affix, now apply it to the ItemInstance and move on.
-				MutableItemInstance->Affixes.Add(AffixInstance.GetValue());
-			}
-			else
-			{
-				// @TODO: Emmit an error?
-			}
-		}
-	}
-
-	if (!ItemInstanceItemDefinition.Get().bOnlyPredefinedAffixes)
-	{
-		int32 AffixCount = 0;
-		if (!InstancingFunctionCDO->DetermineAffixCount(NewItemInstance, ItemInstancingContext, AffixCount))
-		{
-			return false;
-		}
-
-		// Instance AffixCount number of new Affixes for the ItemInstance.
-		while (AffixCount > 0)
-		{
-			AffixCount--;
-
-			const TOptional<TInstancedStruct<FAffixDefinition>> AffixDefinition = UGenericItemizationStatics::PickAffixDefinitionForItemInstance(NewItemInstance, ItemInstancingContext);
-			if (AffixDefinition.IsSet() && AffixDefinition.GetValue().IsValid())
-			{
-				const TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(AffixDefinition.GetValue(), NewItemInstance, ItemInstancingContext);
+				TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(AffixDefinitionEntryPtr->AffixDefinition, NewItemInstance, ItemInstancingContext);
 				if (AffixInstance.IsSet() && AffixInstance.GetValue().IsValid())
 				{
-					// Successfully generated the Affix, now apply it to the ItemInstance and move on.
-					MutableItemInstance->Affixes.Add(AffixInstance.GetValue());
+					// Successfully generated the Affix, now apply it to the ItemInstance.
+					TInstancedStruct<FAffixInstance>& AffixInstanceStruct = AffixInstance.GetValue();
+					AffixInstanceStruct.GetMutable().bPredefinedAffix = true;
+
+					MutableItemInstance->Affixes.Add(AffixInstanceStruct);
 				}
 				else
 				{
 					// @TODO: Emmit an error?
 				}
 			}
-			else
+		}
+
+		if (!ItemInstanceItemDefinition.Get().bOnlyPredefinedAffixes)
+		{
+			int32 AffixCount = 0;
+			bool bDeterminedAffixCount = InstancingFunctionCDO->DetermineAffixCount(NewItemInstance, ItemInstancingContext, AffixCount);
+			if (!bDeterminedAffixCount)
 			{
-				// @TODO: Emmit an error?
+				return false;
+			}
+
+			// Instance AffixCount number of new Affixes for the ItemInstance.
+			while (AffixCount > 0)
+			{
+				AffixCount--;
+
+				const TOptional<TInstancedStruct<FAffixDefinition>> AffixDefinition = UGenericItemizationStatics::PickAffixDefinitionForItemInstance(NewItemInstance, ItemInstancingContext);
+				if (AffixDefinition.IsSet() && AffixDefinition.GetValue().IsValid())
+				{
+					const TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(AffixDefinition.GetValue(), NewItemInstance, ItemInstancingContext);
+					if (AffixInstance.IsSet() && AffixInstance.GetValue().IsValid())
+					{
+						// Successfully generated the Affix, now apply it to the ItemInstance and move on.
+						MutableItemInstance->Affixes.Add(AffixInstance.GetValue());
+					}
+					else
+					{
+						// @TODO: Emmit an error?
+					}
+				}
+				else
+				{
+					// @TODO: Emmit an error?
+				}
 			}
 		}
 	}
 
+	// =====================================================================================
+	// 5. Determine the number of Stacks this ItemInstance will have.
+	// This is based on the StackSettings defined on the ItemDefinition.
+	{
+		int32 DesiredStackCount = 1;
+		bool bCalculatedStackCount = InstancingFunctionCDO->CalculateStackCount(NewItemInstance, ItemInstancingContext, DesiredStackCount);
+		if (!bCalculatedStackCount)
+		{
+			// @TODO: Emmit an error? This isn't necessarily a failure case as we can default.
+		}
+
+		// The StackCount must be >= 1, otherwise it doesnt make sense.
+		// An empty or negative stack would mean the ItemInstance shouldn't exist.
+		MutableItemInstance->StackCount = FMath::Max(1, DesiredStackCount);
+	}
+
 	OutItemInstance = NewItemInstance;
+	return true;
+}
+
+bool UGenericItemizationStatics::GenerateItemInstanceFromTemplate(const FInstancedStruct& ItemInstanceTemplate, FInstancedStruct& OutItemInstanceCopy)
+{
+	const FConstStructView ItemInstanceTemplateView = FConstStructView(ItemInstanceTemplate);
+	const FItemInstance* const ItemInstanceTemplatePtr = ItemInstanceTemplateView.GetPtr<const FItemInstance>();
+	if (!ItemInstanceTemplatePtr)
+	{
+		return false;
+	}
+
+	// Make the copy.
+	OutItemInstanceCopy.Reset();
+	OutItemInstanceCopy = ItemInstanceTemplate;
+
+	// Generate new unique Id information.
+	FItemInstance& MutableItemInstance = OutItemInstanceCopy.GetMutable<FItemInstance>();
+	MutableItemInstance.ItemId = FGuid::NewGuid();
+	MutableItemInstance.ItemSeed = FMath::Rand(); // @TODO: How do we generate the ItemSeed? Do we need some kind of global manager that handles that?
+	MutableItemInstance.ItemStream.Initialize(MutableItemInstance.ItemSeed);
+
 	return true;
 }

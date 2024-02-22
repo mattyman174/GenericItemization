@@ -15,7 +15,7 @@ class UAffixPickFunction;
 /**
  * Class that manages calculating certain attributes of an ItemInstance.
  */
-UCLASS(BlueprintType, Blueprintable)
+UCLASS(ClassGroup = ("Generic Itemization"), BlueprintType, Blueprintable)
 class UItemInstancingFunction : public UObject
 {
 	GENERATED_BODY()
@@ -42,6 +42,10 @@ public:
 	UFUNCTION(BlueprintNativeEvent)
 	bool DetermineAffixCount(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, int32& OutAffixCount) const;
 
+	/* Returns the size of the StackCount the ItemInstance will have. The StackCount must be >= 1. */
+	UFUNCTION(BlueprintNativeEvent)
+	bool CalculateStackCount(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, int32& OutStackCount) const;
+
 	/* Returns the Maximum Item Level. */
 	int32 GetMaximumItemLevel() const { return MaximumItemLevel; }
 
@@ -64,7 +68,7 @@ protected:
  * You may want to pass data important to you through the UserContextData and embed it in the Item Instancing Context.
  * For interpretation elsewhere in the Item Instancing Process or other external systems.
  */
-UCLASS(BlueprintType, Blueprintable)
+UCLASS(ClassGroup = ("Generic Itemization"), BlueprintType, Blueprintable)
 class UItemInstancingContextFunction : public UObject
 {
 	GENERATED_BODY()

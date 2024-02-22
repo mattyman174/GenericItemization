@@ -88,4 +88,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
 	static bool GenerateItemInstanceFromItemDefinition(const FInstancedStruct& ItemDefinition, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItemInstance);
 
+	/**
+	 * Makes an exact copy of the ItemInstance except for its ItemId, ItemSeed and ItemStream, these are all regenerated.
+	 * 
+	 * @param ItemInstanceTemplate		The ItemInstance to make a copy of as a template.
+	 * @param OutItemInstanceCopy		The new ItemInstance that was copied, with new unique Id info.
+	 * @return							True if we could generate the ItemInstance copy successfully.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
+	static bool GenerateItemInstanceFromTemplate(const FInstancedStruct& ItemInstanceTemplate, FInstancedStruct& OutItemInstanceCopy);
+
 };
