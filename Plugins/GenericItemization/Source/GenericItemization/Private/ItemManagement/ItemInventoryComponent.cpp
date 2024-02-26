@@ -6,6 +6,7 @@
 #include "ItemManagement/ItemDrop.h"
 #include "GenericItemizationStatics.h"
 #include "ItemManagement/ItemStackSettings.h"
+#include "GenericItemizationTags.h"
 
 UItemInventoryComponent::UItemInventoryComponent()
 {
@@ -82,11 +83,7 @@ bool UItemInventoryComponent::TakeItem(FInstancedStruct& Item, FInstancedStruct 
 	}
 
 	// Capture the ItemInstance so that we can take it and manage it thereafter.
-	FInstancedStruct& ItemInstance = Item;
-
-	ItemInstances.AddItemInstance(ItemInstance, UserContextData);
-
-	Item.Reset(); // Reset the Instanced Struct just to make sure, we are actually making a logical transfer of ownership to the Inventory Component.
+	ItemInstances.AddItemInstance(Item, UserContextData);
 
 	return true;
 }
@@ -201,7 +198,7 @@ bool UItemInventoryComponent::SplitItemStack(FGuid ItemToSplit, int32 SplitCount
 		return false;
 	}
 
-	FFastItemInstance* FastItemInstanceToSplit = ItemInstances.GetMutableItemInstance(ItemToSplit);
+	const FFastItemInstance* FastItemInstanceToSplit = ItemInstances.GetItemInstance(ItemToSplit);
 	if (!FastItemInstanceToSplit)
 	{
 		return false;
@@ -217,7 +214,15 @@ bool UItemInventoryComponent::SplitItemStack(FGuid ItemToSplit, int32 SplitCount
 	OutSplitItemInstance.GetMutable<FItemInstance>().StackCount = SplitCount;
 
 	// Then modify the original Item that we split from so that it has the remaining StackCount completing the split.
-	FastItemInstanceToSplit->ItemInstance.GetMutable<FItemInstance>().StackCount = Remainder;
+	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
+		ItemToSplit, 
+		GenericItemizationGameplayTags::StackCountChange, 
+		{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
+		[Remainder](FItemInstance* MutableItemInstance)
+		{
+			MutableItemInstance->StackCount = Remainder;
+		}
+	);
 
 	return true;
 }
@@ -229,7 +234,7 @@ bool UItemInventoryComponent::CanStackItems(UItemInventoryComponent* ItemToStack
 		return false;
 	}
 
-	FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetMutableItemInstance(ItemToStackWith);
+	const FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetItemInstance(ItemToStackWith);
 	if (!FastItemToStackWithInstance)
 	{
 		return false;
@@ -273,21 +278,19 @@ bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* It
 		return false;
 	}
 
-	FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetMutableItemInstance(ItemToStackWith);
+	const FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetItemInstance(ItemToStackWith);
 	if (!FastItemToStackWithInstance)
 	{
 		return false;
 	}
 
-	FItemInstance* MutableItemToStackWithPtr = FastItemToStackWithInstance->ItemInstance.GetMutablePtr<FItemInstance>();
-	if (!MutableItemToStackWithPtr)
+	const FItemInstance* const ItemToStackWithPtr = FastItemToStackWithInstance->ItemInstance.GetPtr<FItemInstance>();
+	if (!ItemToStackWithPtr)
 	{
 		return false;
 	}
 
-	FItemInstance& MutableItemToStackWith = FastItemToStackWithInstance->ItemInstance.GetMutable<FItemInstance>();
-
-	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = MutableItemToStackWithPtr->ItemDefinition.GetPtr();
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->ItemDefinition.GetPtr();
 	if (!ItemToStackWithItemDefinitionPtr)
 	{
 		return false;
@@ -320,20 +323,16 @@ bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* It
 
 	if (bPerformDeduction)
 	{
-		FFastItemInstance* FastItemToStackFromInstance = ItemToStackFromInventory->ItemInstances.GetMutableItemInstance(ItemToStackFrom);
-		if (!FastItemToStackFromInstance)
-		{
-			return false;
-		}
-
-		FItemInstance* MutableItemToStackFromPtr = FastItemToStackFromInstance->ItemInstance.GetMutablePtr<FItemInstance>();
-		if (!MutableItemToStackFromPtr)
-		{
-			return false;
-		}
-
-		// Since there is a remainder after the stacking operation, the ItemToStackFrom needs to be updated to reflect that change.
-		MutableItemToStackFromPtr->StackCount = StackRemainder;
+		ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
+			ItemToStackFrom,
+			GenericItemizationGameplayTags::StackCountChange, 
+			{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
+			[StackRemainder](FItemInstance* MutableItemInstance)
+			{
+				// Since there is a remainder after the stacking operation, the ItemToStackFrom needs to be updated to reflect that change.
+				MutableItemInstance->StackCount = StackRemainder;
+			}
+		);
 	}
 	else
 	{
@@ -343,8 +342,16 @@ bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* It
 		ExpungedItemToStackFrom.Reset();
 	}
 
-	// Grant the ItemToStackWith all of the stacks that it is receiving.
-	MutableItemToStackWith.StackCount += ItemToStackFromStackCount - FMath::Clamp(StackRemainder, 0, ItemToStackFromStackCount);
+	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
+		ItemToStackWith, 
+		GenericItemizationGameplayTags::StackCountChange, 
+		{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
+		[ItemToStackFromStackCount, StackRemainder](FItemInstance* MutableItemInstance)
+		{
+			// Grant the ItemToStackWith all of the stacks that it is receiving.
+			MutableItemInstance->StackCount += ItemToStackFromStackCount - FMath::Clamp(StackRemainder, 0, ItemToStackFromStackCount);
+		}
+	);
 
 	return true;
 }
@@ -356,21 +363,19 @@ bool UItemInventoryComponent::StackItemFromItemDrop(AItemDrop* ItemToStackFromIt
 		return false;
 	}
 
-	FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetMutableItemInstance(ItemToStackWith);
+	const FFastItemInstance* FastItemToStackWithInstance = ItemInstances.GetItemInstance(ItemToStackWith);
 	if (!FastItemToStackWithInstance)
 	{
 		return false;
 	}
 
-	FItemInstance* MutableItemToStackWithPtr = FastItemToStackWithInstance->ItemInstance.GetMutablePtr<FItemInstance>();
-	if (!MutableItemToStackWithPtr)
+	const FItemInstance* const ItemToStackWithPtr = FastItemToStackWithInstance->ItemInstance.GetPtr<FItemInstance>();
+	if (!ItemToStackWithPtr)
 	{
 		return false;
 	}
 
-	FItemInstance& MutableItemToStackWith = FastItemToStackWithInstance->ItemInstance.GetMutable<FItemInstance>();
-
-	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = MutableItemToStackWithPtr->ItemDefinition.GetPtr();
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->ItemDefinition.GetPtr();
 	if (!ItemToStackWithItemDefinitionPtr)
 	{
 		return false;
@@ -431,8 +436,16 @@ bool UItemInventoryComponent::StackItemFromItemDrop(AItemDrop* ItemToStackFromIt
 		}
 	}
 
-	// Grant the ItemToStackWith all of the stacks that it is receiving.
-	MutableItemToStackWith.StackCount += ItemToStackFromStackCount - FMath::Clamp(StackRemainder, 0, ItemToStackFromStackCount);
+	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
+		ItemToStackWith, 
+		GenericItemizationGameplayTags::StackCountChange, 
+		{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
+		[ItemToStackFromStackCount, StackRemainder](FItemInstance* MutableItemInstance)
+		{
+			// Grant the ItemToStackWith all of the stacks that it is receiving.
+			MutableItemInstance->StackCount += ItemToStackFromStackCount - FMath::Clamp(StackRemainder, 0, ItemToStackFromStackCount);
+		}
+	);
 
 	return true;
 }
@@ -451,14 +464,16 @@ TArray<FFastItemInstance> UItemInventoryComponent::GetItemsWithContext()
 
 FInstancedStruct UItemInventoryComponent::GetItem(FGuid ItemId, bool& bSuccessful)
 {
-	const FFastItemInstance ItemInstance = ItemInstances.GetItemInstance(ItemId, bSuccessful);
-	return bSuccessful ? ItemInstance.ItemInstance : FInstancedStruct();
+	const FFastItemInstance* ItemInstance = ItemInstances.GetItemInstance(ItemId);
+	bSuccessful = ItemInstance != nullptr;
+	return bSuccessful ? ItemInstance->ItemInstance : FInstancedStruct();
 }
 
 FInstancedStruct UItemInventoryComponent::GetItemContextData(FGuid ItemId, bool& bSuccessful)
 {
-	const FFastItemInstance ItemInstance = ItemInstances.GetItemInstance(ItemId, bSuccessful);
-	return bSuccessful ? ItemInstance.UserContextData : FInstancedStruct();
+	const FFastItemInstance* ItemInstance = ItemInstances.GetItemInstance(ItemId);
+	bSuccessful = ItemInstance != nullptr;
+	return bSuccessful ? ItemInstance->UserContextData : FInstancedStruct();
 }
 
 int32 UItemInventoryComponent::GetNumItems() const
@@ -492,6 +507,16 @@ void UItemInventoryComponent::K2_OnRemovedItem_Implementation(const FInstancedSt
 	// Left empty intentionally to be overridden.
 }
 
+void UItemInventoryComponent::K2_OnItemStackCountChanged_Implementation(const FInstancedStruct& Item, const FInstancedStruct& UserContextData, int32 OldStackCount, int32 NewStackCount)
+{
+	// Left empty intentionally to be overridden.
+}
+
+void UItemInventoryComponent::OnItemInstancePropertyValueChanged(const FFastItemInstance& FastItemInstance, const FGameplayTag& ChangeDescriptor, int32 ChangeId, const FName& PropertyName, const void* OldPropertyValue, const void* NewPropertyValue)
+{
+	// Left empty intentionally to be overridden.
+}
+
 void UItemInventoryComponent::OnAddedItemInstance(const FFastItemInstance& FastItemInstance)
 {
 	GetOwner()->ForceNetUpdate();
@@ -517,4 +542,18 @@ void UItemInventoryComponent::OnRemovedItemInstance(const FFastItemInstance& Fas
 	const FInstancedStruct& ItemInstance = FastItemInstance.ItemInstance;
 	OnItemRemovedDelegate.Broadcast(this, ItemInstance, FastItemInstance.UserContextData);
 	K2_OnRemovedItem(ItemInstance, FastItemInstance.UserContextData);
+}
+
+void UItemInventoryComponent::OnItemInstancePropertyValueChanged_Internal(const FFastItemInstance& FastItemInstance, const FGameplayTag& ChangeDescriptor, int32 ChangeId, const FName& PropertyName, const void* OldPropertyValue, const void* NewPropertyValue)
+{
+	OnItemInstancePropertyValueChanged(FastItemInstance, ChangeDescriptor, ChangeId, PropertyName, OldPropertyValue, NewPropertyValue);
+	OnItemPropertyValueChangedDelegate.Broadcast(this, FastItemInstance, ChangeDescriptor, ChangeId, PropertyName, OldPropertyValue, NewPropertyValue);
+
+	if (ChangeDescriptor == GenericItemizationGameplayTags::StackCountChange && PropertyName == GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount))
+	{
+		const int32* OldStackCount = static_cast<const int32*>(OldPropertyValue);
+		const int32* NewStackCount = static_cast<const int32*>(NewPropertyValue);
+		OnItemStackCountChangedDelegate.Broadcast(this, FastItemInstance.ItemInstance, FastItemInstance.UserContextData, *OldStackCount, *NewStackCount);
+		K2_OnItemStackCountChanged(FastItemInstance.ItemInstance, FastItemInstance.UserContextData, *OldStackCount, *NewStackCount);
+	}
 }

@@ -123,6 +123,27 @@ public:
 
 };
 
+USTRUCT()
+struct FItemInstanceChange
+{
+    GENERATED_BODY()
+
+public:
+    
+    /* Identifies what type of change that was being made. */
+    UPROPERTY()
+    FGameplayTag ChangeDescriptor;
+
+    /* Id of this Change. This helps the Client know how far behind it is. */
+    UPROPERTY()
+    int32 ChangeId;
+
+    /* Names of all of the properties that changed. */
+    UPROPERTY()
+    TArray<FName> ChangedProperties;
+
+};
+
 /**
  * FastArraySerializerItem wrapper for an ItemInstance.
  * 
@@ -141,10 +162,12 @@ public:
     friend struct FFastItemInstancesContainer;
     friend class UItemInventoryComponent;
 
+    void Initialize(FInstancedStruct& InItemInstance, FInstancedStruct& InUserContextData);
+
     //~ Begin of FFastArraySerializerItem
-    void PostReplicatedAdd(const struct FFastItemInstancesContainer& InArray) { }
-    void PostReplicatedChange(const struct FFastItemInstancesContainer& InArray) { }
-    void PreReplicatedRemove(const struct FFastItemInstancesContainer& InArray) { }
+    void PostReplicatedAdd(const struct FFastItemInstancesContainer& InArray);
+    void PostReplicatedChange(const struct FFastItemInstancesContainer& InArray);
+    void PreReplicatedRemove(const struct FFastItemInstancesContainer& InArray);
     //~ End of FFastArraySerializerItem
 
 private:
@@ -156,6 +179,20 @@ private:
     /* The Context Data of the ItemInstance when it was added to the Inventory. */
     UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess))
     FInstancedStruct UserContextData;
+
+    /* List of all recent changes made to the ItemInstance. */
+    UPROPERTY()
+    TArray<FItemInstanceChange> RecentChangesBuffer;
+
+    /* Id of the current ChangeList. */
+    UPROPERTY()
+    int32 RecentChangesId;
+
+    /* A copy of the ItemInstance which we use as a lookup for the previous values of changed properties that come in from the RecentChangesBuffer. */
+    FInstancedStruct PreReplicatedChangeItemInstance;
+
+    /* Id of the ChangeList we have executed up to. */
+    int32 PreviousChangesId;
 
 };
 
@@ -206,7 +243,23 @@ public:
     void Register(UItemInventoryComponent* InOwner);
 
     /* Adds an Item to the container. */
-    void AddItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& UserContextData);
+    void AddItemInstance(FInstancedStruct& ItemInstance, FInstancedStruct& UserContextData);
+
+    /* Creates a scope to make mutable changes to an ItemInstance. This should always be called if you intend to mutate an ItemInstance! */
+    template<typename InstanceType>
+    bool ModifyItemInstance(
+        const FGuid& Item,
+        const TFunctionRef<void(InstanceType* MutableItemInstance)>& MakeChanges
+    );
+
+    /* Creates a scope to make mutable changes to an ItemInstance and replicates a ChangeDescriptor. This should always be called if you intend to mutate an ItemInstance! */
+    template<typename InstanceType>
+    bool ModifyItemInstanceWithChangeDescriptor(
+        const FGuid& Item, 
+        const FGameplayTag& ChangeDescriptor, 
+        TArray<FName> PendingChangeProperties, 
+        const TFunctionRef<void(InstanceType* MutableItemInstance)>& MakeChanges
+    );
 
     /* Removes an Item from the container. */
     bool RemoveItemInstance(const FGuid& Item);
@@ -215,10 +268,7 @@ public:
     TArray<FInstancedStruct> GetItemInstances() const;
 
     /* Returns a copy of the ItemInstance, if it exists. */
-    FFastItemInstance GetItemInstance(const FGuid& Item, bool& bSuccessful) const;
-
-    /* Returns the mutable ItemInstance, marks it dirty so changes are replicated. */
-    FFastItemInstance* GetMutableItemInstance(const FGuid& Item);
+    const FFastItemInstance* GetItemInstance(const FGuid& Item) const;
 
     /* Returns the number of ItemInstances in the container. */
     int32 GetNum() const;
@@ -232,6 +282,12 @@ private:
 	TObjectPtr<UItemInventoryComponent> Owner;
 
     bool bOwnerIsNetAuthority;
+
+    /* Called when an ItemInstance was changed. Calls, DiffItemInstanceChanges and updates any cached state for the changed ItemInstance. */
+    void OnItemInstanceChanged(FFastItemInstance& ChangedItemInstance);
+
+    /* Diffs the RecentChangesBuffer for the ItemInstance and emits any actual changes that took place to the ItemInventoryComponent. */
+    void DiffItemInstanceChanges(FFastItemInstance& ChangedItemInstance);
 
     /**
      * DO NOT USE DIRECTLY
@@ -249,6 +305,78 @@ private:
     FORCEINLINE friend TConstIterator end(const FFastItemInstancesContainer& Container) { return TConstIterator(Container.ItemInstances, Container.ItemInstances.Num()); }
 
 };
+
+template<typename InstanceType>
+bool FFastItemInstancesContainer::ModifyItemInstance(const FGuid& Item, const TFunctionRef<void(InstanceType* MutableItemInstance)>& MakeChanges)
+{
+    static_assert(std::is_same_v<InstanceType, FItemInstance> ||
+        TIsDerivedFrom<InstanceType, FItemInstance>::IsDerived, "Changes can only be made on FItemInstance types.");
+
+    for (FFastItemInstance& ItemInstance : ItemInstances)
+    {
+        const FItemInstance* ItemInstancePtr = ItemInstance.ItemInstance.GetPtr<FItemInstance>();
+        if (ItemInstancePtr && ItemInstancePtr->ItemId == Item)
+        {
+            // Update our cached state.
+            ItemInstance.PreReplicatedChangeItemInstance.InitializeAs(ItemInstance.ItemInstance.GetScriptStruct(), ItemInstance.ItemInstance.GetMemory());
+
+            // Commit the changes to the actual ItemInstance being requested.
+            MakeChanges(ItemInstance.ItemInstance.GetMutablePtr<InstanceType>());
+
+            if (HasAuthority())
+            {
+                OnItemInstanceChanged(ItemInstance);
+                MarkItemDirty(ItemInstance);
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template<typename InstanceType>
+bool FFastItemInstancesContainer::ModifyItemInstanceWithChangeDescriptor(const FGuid& Item, const FGameplayTag& ChangeDescriptor, TArray<FName> PendingChangeProperties, const TFunctionRef<void(InstanceType* MutableItemInstance)>& MakeChanges)
+{
+    static_assert(std::is_same_v<InstanceType, FItemInstance> ||
+        TIsDerivedFrom<InstanceType, FItemInstance>::IsDerived, "Changes can only be made on FItemInstance types.");
+
+    for (FFastItemInstance& ItemInstance : ItemInstances)
+    {
+        const FItemInstance* ItemInstancePtr = ItemInstance.ItemInstance.GetPtr<FItemInstance>();
+        if (ItemInstancePtr && ItemInstancePtr->ItemId == Item)
+        {
+            // Update our cached state.
+            ItemInstance.PreReplicatedChangeItemInstance.InitializeAs(ItemInstance.ItemInstance.GetScriptStruct(), ItemInstance.ItemInstance.GetMemory());
+
+            // This is a new Change, update the ID.
+            ItemInstance.RecentChangesId++;
+
+            // Push the change descriptor onto the ItemInstance.
+            // This is replicated to the Client so it can perform the same diff operation.
+            FItemInstanceChange NewChange;
+            NewChange.ChangeDescriptor = ChangeDescriptor;
+            NewChange.ChangedProperties.Append(PendingChangeProperties);
+            NewChange.ChangeId = ItemInstance.RecentChangesId;
+            ItemInstance.RecentChangesBuffer.Add(NewChange);
+
+            // Commit the changes to the actual ItemInstance being requested.
+            // We then diff these against the PreReplicatedChangeItemInstance.
+            MakeChanges(ItemInstance.ItemInstance.GetMutablePtr<InstanceType>());
+
+            if(HasAuthority())
+			{
+                OnItemInstanceChanged(ItemInstance);
+				MarkItemDirty(ItemInstance);
+			}
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 template<>
 struct TStructOpsTypeTraits<FFastItemInstancesContainer> : public TStructOpsTypeTraitsBase2<FFastItemInstancesContainer>

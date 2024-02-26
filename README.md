@@ -15,6 +15,8 @@ You can find my contact information on my website:
 
 **Latest compiled against: UE 5.3.2**
 
+[**YouTube Videos**](https://www.youtube.com/playlist?list=PLFgj8T5yppmdJdLv7CVG-narFbJ5bS1Pi)
+
 [**Public Roadmap of future features**](https://trello.com/b/0KRMa5hg/generic-itemization-plugin)
 
 <a name="table-of-contents"></a>
@@ -27,10 +29,12 @@ You can find my contact information on my website:
 >5 [Generic Itemization Concepts](#concepts)  
 >>5.1 [Drop Tables](#drop-tables)  
 >>>5.1.1 [Drop Table Types](#drop-table-types)  
+>>>5.1.2 [Mutators](#drop-table-mutators)  
+>>>5.1.3 [Quality Type Bonuses](#drop-table-quality-type-bonuses)  
 >>
 >>5.2 [Items](#items)  
 >>>5.2.1 [Item Definition](#item-definition)  
->>>>5.2.1.1 [Item Type](#item-definition-item-type)  
+>>>>5.2.1.1 [Item Type and Item Identifier](#item-definition-item-type)  
 >>>>5.2.1.2 [Spawnable](#item-definition-spawnable)  
 >>>>5.2.1.3 [Pick Chance](#item-definition-pick-chance)  
 >>>>5.2.1.4 [Quality Type](#item-definition-quality-type)  
@@ -39,6 +43,7 @@ You can find my contact information on my website:
 >>>>5.2.1.5 [Affix Count, Predefined Affixes and the Affix Pool](#item-definition-affixes)  
 >>>>5.2.1.6 [User Data](#item-definition-user-data)  
 >>>>5.2.1.7 [Item Instancing Function](#item-definition-instancing-function)  
+>>>>5.2.1.8 [Item Stack Settings](#item-definition-stack-settings)  
 >>>
 >>>5.2.2 [Item Instance](#item-instance)  
 >>
@@ -59,6 +64,7 @@ You can find my contact information on my website:
 >>>5.6.1 [Item Instancing Context and the Context Provider Function](#item-instancing-context)  
 >>
 >>5.7 [Item Inventory Component](#item-inventory-component)  
+>>>5.7.1 [Modifying Item Instances](#item-inventory-component-modifying-item-instances)  
 >
 >6 [Other Resources](#other-resources)  
          
@@ -160,6 +166,8 @@ It demonstrates the following non exhaustive list of concepts in no particular o
 * Setting up `DropTables` that ultimately determine the pools of Items that can be selected for.
 * Overriding the `AItemDrop` Actor to display actual instances of Items within the world.
 * Usage of the `ItemDropperComponent` to actually drop Item Instances in the world.
+* How Drop Tables can make arbitrary modifications to Items during the `Item Instancing Process` with `Mutators`.
+* Stacking Items on top of other Items of the same type.
 
 The Sample Project has sample data taken from Diablo 2 in order to demonstrate the plugins usage, it also provides some minimal User Interface additions to make visualizing the Itemization that has been implemented.
 
@@ -183,7 +191,7 @@ Once it is integrated as explained above, you are free to move ahead and add Ite
 
 The Class Layout of the entire Generic Itemization Plugin is displayed below. It shows the relationships between different classes and struct types. As well as how some of their properties relate to one another. It also shows all of the functions available to each class.
 
-![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystem.png)
+![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystem_1_2.png)
 
 You will want to view it in full as a separate window in order to make out its details.
 
@@ -264,6 +272,34 @@ By default, this type does not have any native `PickRequirements`. These can be 
 
 **[⬆ Back to Top](#table-of-contents)**
 
+<a name="drop-table-mutators"></a>
+### 5.1.2 Mutators
+
+Item Drop Tables can opt to define arbitrary data that is passed along in the `ItemInstancingContext` when they go to generate a new Item as part of the `Item Instancing Process`.
+
+This arbitrary data comes in the form of a Map of `GameplayTags` and an accompanying `float` value. These can be queried within the `ItemInstancingContext`.
+
+The Sample Project makes use of this to allow Drop Tables to modify the magnitude of the amounts of Gold that can be dropped for a given entry in the Drop Table.
+
+![Item Drop Table Mutators](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/DropTableMutators.JPG)
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="drop-table-quality-type-bonuses"></a>
+### 5.1.3 Quality Type Bonuses
+
+In order to affect the likelihood of a particular `QualityType` of Item to be selected from a Drop Table, the Drop Table can describe adjustments to the `Factor` that is used when making the `QualityType` selection.
+
+Drop Tables have a `QualityTypeBonuses` property that allow you to express these changes for a particular entry in the table.
+
+![Item Drop Table Quality Type Bonuses](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/DropTableQualityTypeBonuses.JPG)
+
+This describes how much to reduce the Factor by for that `QualityType`.  The default implementation of `QualityType` selection operates on the basis that `QualityType`s are rolled for separately and the first to have a Pick value of < `128` is chosen.
+
+The `AdjustedFactor` changes the overall Pick value by that amount where `1024` forces it to `0` (will absolutely be selected, assuming a `QualityType` in front doesn't get selected first). A value of `-1024` will likely cause the `QualityType` to be skipped during selection.
+
+**[⬆ Back to Top](#table-of-contents)**
+
 <a name="items"></a>
 ### 5.2 Items
 
@@ -291,11 +327,13 @@ The `ItemDefinition` describes everything about an Item and also how an `ItemIns
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-definition-item-type"></a>
-### 5.2.1.1 Item Type
+### 5.2.1.1 Item Type and Item Identifier
 
-The `ItemType` of an Item places it into a particular category that has consequences for elements of its behaviour and generation options that are available to it in the `Item Instancing Process`.
+The `ItemType` and `ItemIdentifier` of an Item places it into a particular category that has consequences for elements of its behaviour and generation options that are available to it in the `Item Instancing Process`.
 
 The main restriction that is imposed on an Item by its `ItemType` is the Affixes that are available to it when an `ItemInstance` of that Item is being generated. Affixes have requirements on the types of Items they can be generated on.
+
+The `ItemIdentifier` is critical to managing an individual Items ability to be stacked on similar/same Items. The `ItemIdentifier` is designed such that it *should* be made unique across every `ItemDefinition` however this is not enforced.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -415,6 +453,27 @@ It is also responsible for defining the `AffixPickFunction`, that controls how A
 
 **[⬆ Back to Top](#table-of-contents)**
 
+<a name="item-definition-stack-settings"></a>
+### 5.2.1.8 Item Stack Settings
+
+`ItemDefinition`s can choose to describe if and how `ItemInstance`s that are derived from them can be stacked.
+
+By default there is no `ItemStackSettings` defined on an `ItemDefinition`, you must opt into this. Meaning that stacking is by default not available. You can easily create a new Blueprint that derives from `UItemStackSettings`, set `bStackable` to `true` and assign it to the `ItemDefinition` for the Item you wish to be stackable.
+
+![Item Stack Settings](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemStackSettings.JPG)
+
+The `ItemStackSettings` stacking requirements is an `InstancedStruct` that can be overridden to implement further requirements you might need. The `UItemStackSettings` class implements a `CanStackWith` function that is overridable in both C++ and Blueprint, this is where you would introduce more requirements.
+
+The native requirements simply allow you to determine which elements of Items allow them to be stacked on one another. An underpinning requirement for all stackable Items is that they are derived from the same `ItemType` and `ItemIdentifier` which is expressed in the `ItemDefinition`.
+
+`ItemInstance`s that meet the `ItemStackSettings` requirements can be stacked onto each other via the `ItemInventoryComponent` of the Item that needs its stack increased. Calling `StackItemFromInventory` or `StackItemFromItemDrop` will perform the stacking operation.
+
+![Stackable Items](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/StackableItems.JPG)
+
+The Sample Project implements stackable Items in the form of both Potions and Gold. It also provides functionality to the Inventory UI to demonstrate the stacking operations which can affect a visually interactable Item like a Potion, which is dropped into the Inventory as opposed to a more abstract Item such as Gold which is accumulated directly on pickup.
+
+**[⬆ Back to Top](#table-of-contents)**
+
 <a name="item-instance"></a>
 ### 5.2.2 Item Instance
 
@@ -529,6 +588,8 @@ An `AffixInstance` is a relatively simple Instanced Struct as it currently stand
 
 `ItemInstance`s hold a list of all of the `AffixInstance`s that were applied to it during its generation. An `AffixInstance` is created from the `UItemInstancingFunction::MakeAffixInstance` function and can only be overridden in C++ due to Blueprint structs not being capable of inheritance. If you need to create additional functionality on top of an `AffixInstance` you will need to override that function to introduce it appropriately.
 
+`AffixInstance`s that were applied to an Item by way of the `ItemDefinition`s predefined Affix list will have their `bPredefinedAffix` property set to `true` so they can be identified as such. This has implications for functionality like stacking behaviour, as stacking requirements can choose to ignore predefined Affixes when checking if in Item can be stacked onto another.
+
 **[⬆ Back to Top](#table-of-contents)**
 
 <a name="item-instancing-process"></a>
@@ -546,7 +607,8 @@ The Item Instancing Process is the steps that are taken from when the `DropItems
 6. Add any predefined Affixes that are described on the `ItemDefinition`.
 7. Determine the number of Affixes to randomly generate, from the `AffixCountRatio` on the `ItemDefinition`.
 8. For Affix Count number of Affixes, generate them from the Affix Pool on the `ItemDefinition`.
-9. Spawn an `ItemDrop` Actor and assign the `ItemInstance` to it.
+9. Calculate the desired `StackCount` of the Item via its `ItemInstancingFunction`. Default is 1 stack.
+10. Spawn an `ItemDrop` Actor and assign the `ItemInstance` to it.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -610,6 +672,13 @@ The `ItemInventoryComponent` does not deal with specific details of how a Player
 
 **[⬆ Back to Top](#table-of-contents)**
 
+<a name="item-inventory-component-modifying-item-instances"></a>
+### 5.6.1 Modifying Item Instances
+
+TODO
+
+**[⬆ Back to Top](#table-of-contents)**
+
 <a name="other-resources"></a>
 ## 6. Other Resources
 
@@ -624,5 +693,11 @@ If you found the Generic Itemization Plugin useful to you, please [consider maki
 
 You can find my contact information on my website:
 [https://fissureentertainment.com/](https://fissureentertainment.com/)
+
+**Latest compiled against: UE 5.3.2**
+
+[**YouTube Videos**](https://www.youtube.com/playlist?list=PLFgj8T5yppmdJdLv7CVG-narFbJ5bS1Pi)
+
+[**Public Roadmap of future features**](https://trello.com/b/0KRMa5hg/generic-itemization-plugin)
 
 **[⬆ Back to Top](#table-of-contents)**

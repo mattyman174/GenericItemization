@@ -31,6 +31,32 @@ bool FItemInstance::IsValid() const
 	return ItemSeed != -1;
 }
 
+void FFastItemInstance::Initialize(FInstancedStruct& InItemInstance, FInstancedStruct& InUserContextData)
+{
+	ItemInstance = InItemInstance;
+	UserContextData = InUserContextData;
+
+	// Make a copy of the ItemInstance for change comparison.
+	PreReplicatedChangeItemInstance.InitializeAs(ItemInstance.GetScriptStruct(), ItemInstance.GetMemory());
+}
+
+void FFastItemInstance::PostReplicatedAdd(const struct FFastItemInstancesContainer& InArray)
+{
+	// Update our cached state.
+	PreReplicatedChangeItemInstance.InitializeAs(ItemInstance.GetScriptStruct(), ItemInstance.GetMemory());
+	PreviousChangesId = RecentChangesId;
+}
+
+void FFastItemInstance::PostReplicatedChange(const struct FFastItemInstancesContainer& InArray)
+{
+
+}
+
+void FFastItemInstance::PreReplicatedRemove(const struct FFastItemInstancesContainer& InArray)
+{
+
+}
+
 void FFastItemInstancesContainer::PostReplicatedAdd(const TArrayView<int32>& AddedIndices, int32 FinalSize)
 {
 	for (const int32& Index : AddedIndices)
@@ -48,12 +74,8 @@ void FFastItemInstancesContainer::PostReplicatedChange(const TArrayView<int32>& 
 {
 	for (const int32& Index : ChangedIndices)
 	{
-		const FFastItemInstance& FastItemInstance = ItemInstances[Index];
-		const FInstancedStruct& PostChangeItemInstance = FastItemInstance.ItemInstance;
-		if (Owner)
-		{
-			Owner->OnChangedItemInstance(FastItemInstance);
-		}
+		FFastItemInstance& FastItemInstance = ItemInstances[Index];
+		OnItemInstanceChanged(FastItemInstance);
 	}
 }
 
@@ -79,7 +101,7 @@ void FFastItemInstancesContainer::Register(UItemInventoryComponent* InOwner)
 	}
 }
 
-void FFastItemInstancesContainer::AddItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& UserContextData)
+void FFastItemInstancesContainer::AddItemInstance(FInstancedStruct& ItemInstance, FInstancedStruct& UserContextData)
 {
 	if (!Owner)
 	{
@@ -87,13 +109,28 @@ void FFastItemInstancesContainer::AddItemInstance(const FInstancedStruct& ItemIn
 	}
 
 	FFastItemInstance FastItemInstance;
-	FastItemInstance.ItemInstance = ItemInstance;
-	FastItemInstance.UserContextData = UserContextData;
-
+	FastItemInstance.Initialize(ItemInstance, UserContextData);
 	ItemInstances.Add(FastItemInstance);
-	MarkItemDirty(FastItemInstance);
 
-	Owner->OnAddedItemInstance(FastItemInstance);
+	if (HasAuthority())
+	{
+		Owner->OnAddedItemInstance(FastItemInstance);
+		MarkItemDirty(FastItemInstance);
+	}
+}
+
+void FFastItemInstancesContainer::OnItemInstanceChanged(FFastItemInstance& ChangedItemInstance)
+{
+	DiffItemInstanceChanges(ChangedItemInstance);
+
+	if (Owner)
+	{
+		Owner->OnChangedItemInstance(ChangedItemInstance);
+	}
+
+	// Update our cached state.
+	ChangedItemInstance.PreReplicatedChangeItemInstance.InitializeAs(ChangedItemInstance.ItemInstance.GetScriptStruct(), ChangedItemInstance.ItemInstance.GetMemory());
+	ChangedItemInstance.PreviousChangesId = ChangedItemInstance.RecentChangesId;
 }
 
 bool FFastItemInstancesContainer::RemoveItemInstance(const FGuid& ItemInstance)
@@ -105,9 +142,13 @@ bool FFastItemInstancesContainer::RemoveItemInstance(const FGuid& ItemInstance)
 		{
 			FFastItemInstance OldItemInstance = ItemInstances[i];
 			ItemInstances.RemoveAt(i);
-			MarkArrayDirty();
 
-			Owner->OnRemovedItemInstance(OldItemInstance);
+			if(HasAuthority())
+			{
+				Owner->OnRemovedItemInstance(OldItemInstance);
+				MarkArrayDirty();
+			}
+
 			return true;
 		}
 	}
@@ -128,31 +169,14 @@ TArray<FInstancedStruct> FFastItemInstancesContainer::GetItemInstances() const
 	return Result;
 }
 
-FFastItemInstance FFastItemInstancesContainer::GetItemInstance(const FGuid& Item, bool& bSuccessful) const
+const FFastItemInstance* FFastItemInstancesContainer::GetItemInstance(const FGuid& Item) const
 {
 	for (const FFastItemInstance& FastItemInstance : ItemInstances)
 	{
 		const FItemInstance* ItemInstancePtr = FastItemInstance.ItemInstance.GetPtr<FItemInstance>();
 		if (ItemInstancePtr && ItemInstancePtr->ItemId == Item)
 		{
-			bSuccessful = true;
-			return FastItemInstance;
-		}
-	}
-
-	bSuccessful = false;
-	return FFastItemInstance();
-}
-
-FFastItemInstance* FFastItemInstancesContainer::GetMutableItemInstance(const FGuid& Item)
-{
-	for (FFastItemInstance& ItemInstance : ItemInstances)
-	{
-		const FItemInstance* ItemInstancePtr = ItemInstance.ItemInstance.GetPtr<FItemInstance>();
-		if (ItemInstancePtr && ItemInstancePtr->ItemId == Item)
-		{
-			MarkItemDirty(ItemInstance);
-			return &ItemInstance;
+			return &FastItemInstance;
 		}
 	}
 
@@ -162,4 +186,34 @@ FFastItemInstance* FFastItemInstancesContainer::GetMutableItemInstance(const FGu
 int32 FFastItemInstancesContainer::GetNum() const
 {
 	return ItemInstances.Num();
+}
+
+void FFastItemInstancesContainer::DiffItemInstanceChanges(FFastItemInstance& ChangedItemInstance)
+{
+	if(IsValid(Owner))
+	{
+		for (const FItemInstanceChange& RecentChange : ChangedItemInstance.RecentChangesBuffer)
+		{
+			if (RecentChange.ChangeId >= ChangedItemInstance.PreviousChangesId)
+			{
+				for (const FName& PropertyName : RecentChange.ChangedProperties)
+				{
+					const FProperty* OldProperty = nullptr;
+					const void* OldPropertyData = nullptr;
+					const bool bFoundOldProperty = ChangedItemInstance.PreReplicatedChangeItemInstance.FindInnerPropertyInstance(PropertyName, OldProperty, OldPropertyData);
+
+					const FProperty* NewProperty = nullptr;
+					const void* NewPropertyData = nullptr;
+					const bool bFoundNewProperty = ChangedItemInstance.ItemInstance.FindInnerPropertyInstance(PropertyName, NewProperty, NewPropertyData);
+
+					if (bFoundOldProperty && bFoundNewProperty)
+					{
+						const void* OldPropertyValue = OldProperty->ContainerPtrToValuePtr<const void>(OldPropertyData);
+						const void* NewPropertyValue = NewProperty->ContainerPtrToValuePtr<const void>(NewPropertyData);
+						Owner->OnItemInstancePropertyValueChanged_Internal(ChangedItemInstance, RecentChange.ChangeDescriptor, RecentChange.ChangeId, PropertyName, OldPropertyValue, NewPropertyValue);
+					}
+				}
+			}
+		}
+	}
 }

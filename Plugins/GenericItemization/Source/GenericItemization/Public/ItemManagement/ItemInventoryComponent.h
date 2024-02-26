@@ -13,6 +13,8 @@ class AItemDrop;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemTakenSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemChangedSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemRemovedSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FItemInventoryComponentItemChangedStackCountSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData, int32, OldStackCount, int32, NewStackCount);
+DECLARE_MULTICAST_DELEGATE_SevenParams(FItemInventoryComponentItemPropertyValueChangedSignature, UItemInventoryComponent* /*ItemInventoryComponent*/, const FFastItemInstance& /*FastItemInstance*/, const FGameplayTag& /*ChangeDescriptor*/, int32 /*ChangeId*/, const FName& /*PropertyName*/, const void* /*OldPropertyValue*/, const void* /*NewPropertyValue*/);
 
 /**
  * A Component that sits on an Actor that owns and manages actual instances of Items.
@@ -43,6 +45,13 @@ public:
 	/* Called when the Inventory dropped an ItemInstance that it was managing. */
 	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Removed"))
 	FItemInventoryComponentItemRemovedSignature OnItemRemovedDelegate;
+
+	/* Called when an ItemInstance in the Inventory had its StackCount changed. */
+	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Stack Count Changed"))
+	FItemInventoryComponentItemChangedStackCountSignature OnItemStackCountChangedDelegate;
+
+	/* Called when an ItemInstance in the Inventory had a property value changed. */
+	FItemInventoryComponentItemPropertyValueChangedSignature OnItemPropertyValueChangedDelegate;
 
 	/**
 	 * Checks if the given Item can be taken by the Inventory Component.
@@ -197,22 +206,50 @@ protected:
 	void K2_OnAddedItem(const FInstancedStruct& Item, const FInstancedStruct& UserContextData);
 
 	/* Called when the Inventory has an ItemInstance that changed. */
-	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Changed Item"))
+	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Item Changed"))
 	void K2_OnChangedItem(const FInstancedStruct& Item, const FInstancedStruct& UserContextData);
 
 	/* Called when the Inventory dropped an ItemInstance that it was managing. */
 	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Removed Item"))
 	void K2_OnRemovedItem(const FInstancedStruct& Item, const FInstancedStruct& UserContextData);
 
+	/* Called when an ItemInstance in the Inventory had its StackCount changed. */
+	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Item Stack Count Changed"))
+	void K2_OnItemStackCountChanged(const FInstancedStruct& Item, const FInstancedStruct& UserContextData, int32 OldStackCount, int32 NewStackCount);
+
+	/**
+	 * Called when an individual property on an Item has been changed.
+	 *
+	 * @param FastItemInstance		The ItemInstance who's property was changed.
+	 * @param ChangeDescriptor		Descriptor Tag of the type of change that was made.
+	 * @param ChangeId				Id of the Changelist it belongs to.
+	 * @param PropertyName			The actual name of the UPROPERTY that was changed.
+	 * @param OldPropertyValue		Pointer to the Old value of the property.
+	 * @param NewPropertyValue		Pointer to the New value of the property.
+	 */
+	virtual void OnItemInstancePropertyValueChanged(const FFastItemInstance& FastItemInstance, const FGameplayTag& ChangeDescriptor, int32 ChangeId, const FName& PropertyName, const void* OldPropertyValue, const void* NewPropertyValue);
+
 private:
 
 	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Item being Added. */
 	void OnAddedItemInstance(const FFastItemInstance& FastItemInstance);
 
-	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Item being Changed. */
+	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Items properties being Changed. */
 	void OnChangedItemInstance(const FFastItemInstance& FastItemInstance);
 
 	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Item being Removed. */
 	void OnRemovedItemInstance(const FFastItemInstance& FastItemInstance);
+
+	/**
+	 * Called natively by the FFastItemInstancesContainer to notify the Inventory of an individual property on an Item being changed. 
+	 * 
+	 * @param FastItemInstance		The ItemInstance who's property was changed.
+	 * @param ChangeDescriptor		Descriptor Tag of the type of change that was made.
+	 * @param ChangeId				Id of the Changelist it belongs to.
+	 * @param PropertyName			The actual name of the UPROPERTY that was changed.
+	 * @param OldPropertyValue		Pointer to the Old value of the property.
+	 * @param NewPropertyValue		Pointer to the New value of the property.
+	 */
+	void OnItemInstancePropertyValueChanged_Internal(const FFastItemInstance& FastItemInstance, const FGameplayTag& ChangeDescriptor, int32 ChangeId, const FName& PropertyName, const void* OldPropertyValue, const void* NewPropertyValue);
 
 };
