@@ -691,7 +691,7 @@ Generally speaking there shouldn't be many instances where making direct modific
 
 With that said the Generic Itemization Plugin does provide functionality that requires modification of an `ItemInstance` in the form of the `StackCount` and the stacking functionality in general.
 
-`StackCount` is a property of an `ItemInstance` which is changed according to a stacking operation, either an actual increase in the stack representing the combining of 2 `ItemInstance`s or a reduction in the stack being that of a splitting on a single `ItemInstance` into 2 separate ones with their own `StackCount`.
+`StackCount` is a property of an `ItemInstance` which is changed according to a stacking operation, either an actual increase in the stack representing the combining of 2 `ItemInstance`s or a reduction in the stack being that of a splitting of a single `ItemInstance` into 2 separate ones with their own `StackCount`.
 
 So with that said, the Generic Itemization Plugin provides an intended use mechanism for making modifications to `ItemInstance`s that are owned by an `ItemInventoryComponent`. At the moment this is only available in C++; modification to `ItemInstance`s in Blueprint is not advised.
 
@@ -721,10 +721,10 @@ An example of how to utilize `ModifyItemInstanceWithChangeDescriptor` can be see
 
 ```cpp
 ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(	// Template type for declaring what type of ItemInstance we are making changes to.
-	ItemToStackFrom, 													// FGuid of the Item being changed.
-	GenericItemizationGameplayTags::StackCountChange, 					// GameplayTag identifying what type of a change is being made.
-	{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) }, 			// The actual properties of the ItemInstance being changed.
-	[StackRemainder](FItemInstance* MutableItemInstance) 				// Lambda scope that makes the changes to the ItemInstance.
+	ItemToStackFrom, 						// FGuid of the Item being changed.
+	GenericItemizationGameplayTags::StackCountChange, 		// GameplayTag identifying what type of a change is being made.
+	{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) }, 	// The actual properties of the ItemInstance being changed.
+	[StackRemainder](FItemInstance* MutableItemInstance) 		// Lambda scope that makes the changes to the ItemInstance.
 	{
 		// Since there is a remainder after the stacking operation, the ItemToStackFrom needs to be updated to reflect that change.
 		MutableItemInstance->StackCount = StackRemainder;
