@@ -1,5 +1,42 @@
 #include "GenericItemizationInstanceTypes.h"
 #include "ItemManagement/ItemInventoryComponent.h"
+#include "Engine/DataTable.h"
+
+/************************************************************************/
+/* Affixes
+/************************************************************************/
+
+bool FAffixInstance::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << bPredefinedAffix;
+	Ar << AffixDefinitionHandle.DataTable;
+	Ar << AffixDefinitionHandle.RowName;
+
+	if (Ar.IsLoading())
+	{
+		SetAffixDefinition(AffixDefinitionHandle);
+	}
+
+	bOutSuccess = true;
+	return true;
+}
+
+void FAffixInstance::SetAffixDefinition(const FDataTableRowHandle& Handle)
+{
+	AffixDefinitionHandle = Handle;
+	if (!AffixDefinitionHandle.IsNull())
+	{
+		const FAffixDefinitionEntry* AffixDefinitionEntry = AffixDefinitionHandle.GetRow<FAffixDefinitionEntry>(FString());
+		if (AffixDefinitionEntry)
+		{
+			AffixDefinition = AffixDefinitionEntry->AffixDefinition;
+		}
+	}
+}
+
+/************************************************************************/
+/* Items
+/************************************************************************/
 
 FItemInstance::FItemInstance()
 {
@@ -14,9 +51,9 @@ bool FItemInstance::HasAnyAffixOfType(const FGameplayTag& AffixType) const
 {
 	for (const TInstancedStruct<FAffixInstance>& AffixInstance : Affixes)
 	{
-		if (AffixInstance.IsValid() && AffixInstance.Get().AffixDefinition.IsValid())
+		if (AffixInstance.IsValid() && AffixInstance.Get().GetAffixDefinition().IsValid())
 		{
-			if (AffixType.MatchesTag(AffixInstance.Get().AffixDefinition.Get().AffixType))
+			if (AffixType.MatchesTag(AffixInstance.Get().GetAffixDefinition().Get().AffixType))
 			{
 				return true;
 			}

@@ -50,21 +50,21 @@ public:
 	static TOptional<TInstancedStruct<FItemDefinition>> PickItemDefinitionEntry(const TInstancedStruct<FItemDefinitionRow>& ItemDefinitionEntry, const FInstancedStruct& ItemInstancingContext);
 
 	/**
-	 * Gets a single AffixDefinition for the passed in ItemInstance that meets its requirements.
+	 * Gets a handle to a single AffixDefinition for the passed in ItemInstance that meets its requirements.
 	 * 
 	 * @param ItemInstance				The actual Item that will be getting the Affix applied to it.
 	 * @param ItemInstancingContext		Contains information about the Context around which an ItemInstance is called to be generated.
 	 */
-	static TOptional<TInstancedStruct<FAffixDefinition>> PickAffixDefinitionForItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext);
+	static TOptional<FDataTableRowHandle> PickAffixDefinitionForItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext);
 
 	/**
 	 * Generates a new Affix Instance from the passed in AffixDefinition.
 	 * 
-	 * @param AffixDefinition			The static information the AffixInstance will use to understand how it is to generate.
+	 * @param AffixDefinitionHandle		A handle to the static information the AffixInstance will use to understand how it is to generate.
 	 * @param ItemInstance				The ItemInstance that the AffixInstance will be applied to and is being generated for.
 	 * @param ItemInstancingContext		Contains information about the Context around which an ItemInstance is called to be generated.
 	 */
-	static TOptional<TInstancedStruct<FAffixInstance>> GenerateAffixInstanceFromAffixDefinition(const TInstancedStruct<FAffixDefinition>& AffixDefinition, const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext);
+	static TOptional<TInstancedStruct<FAffixInstance>> GenerateAffixInstanceFromAffixDefinition(const FDataTableRowHandle& AffixDefinitionHandle, const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext);
 
 	/**
 	 * Picks Item Definitions according to the passed in DropTable. The DropTable entry will determine how many Picks are to be attempted and from what tables selections will come from.

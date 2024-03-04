@@ -106,10 +106,10 @@ public:
 	 * Returns false if no Affix was selected. 
 	 */
 	UFUNCTION(BlueprintNativeEvent)
-	bool PickAffix(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutAffix) const;
+	bool PickAffix(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, FDataTableRowHandle& OutAffixHandle) const;
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool GetAffixesWithMinimumNativeRequirements(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, TArray<TInstancedStruct<FAffixDefinition>>& OutAffixes) const;
+	virtual bool GetAffixesWithMinimumNativeRequirements(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, TArray<FDataTableRowHandle>& OutAffixHandles) const;
 
 	/* The Definitions of all Affixes we can select from. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (DisplayPriority = "1", RequiredAssetDataTags = "RowStructure=/Script/GenericItemization.AffixDefinitionEntry"))

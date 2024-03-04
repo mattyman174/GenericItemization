@@ -24,14 +24,34 @@ struct FAffixInstance
 
 public:
 
-    /* The static data that describes this Affix. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    TInstancedStruct<FAffixDefinition> AffixDefinition;
-
     /* Was this AffixInstance from a predefined Affix on the ItemDefinition for the ItemInstance its applied to. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     bool bPredefinedAffix = false;
 
+    bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+    const TInstancedStruct<FAffixDefinition>& GetAffixDefinition() const { return AffixDefinition; }
+    void SetAffixDefinition(const FDataTableRowHandle& Handle);
+
+protected:
+
+    /* The static data that describes this Affix. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, NotReplicated, meta = (AllowPrivateAccess))
+    TInstancedStruct<FAffixDefinition> AffixDefinition;
+
+    /* Handle to the actual AffixDefinition, this is serialized instead of the AffixDefinition itself. */
+    UPROPERTY()
+    FDataTableRowHandle AffixDefinitionHandle;
+
+};
+
+template<>
+struct TStructOpsTypeTraits<FAffixInstance> : public TStructOpsTypeTraitsBase2<FAffixInstance>
+{
+    enum
+    {
+        WithNetSerializer = true,
+    };
 };
 
 /************************************************************************/

@@ -194,22 +194,23 @@ bool UItemDefinitionCollectionPickFunction::DoesItemDefinitionSatisfyPickRequire
 /* Affixes
 /************************************************************************/
 
-bool UAffixPickFunction::PickAffix_Implementation(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutAffix) const
+bool UAffixPickFunction::PickAffix_Implementation(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, FDataTableRowHandle& OutAffixHandle) const
 {
-	TArray<TInstancedStruct<FAffixDefinition>> AffixDefinitions;
-	GetAffixesWithMinimumNativeRequirements(ItemInstance, ItemInstancingContext, AffixDefinitions);
+	TArray<FDataTableRowHandle> AffixDefinitionHandles;
+	GetAffixesWithMinimumNativeRequirements(ItemInstance, ItemInstancingContext, AffixDefinitionHandles);
 
 	// Seed all of the Picks we will make a selection from.
-	using FAffixPickEntry = FPickEntry<TInstancedStruct<FAffixDefinition>>;
+	using FAffixPickEntry = FPickEntry<FDataTableRowHandle>;
 	TArray<FAffixPickEntry> PickEntries;
-	PickEntries.Reserve(AffixDefinitions.Num());
-	for (const TInstancedStruct<FAffixDefinition>& AffixDefinition : AffixDefinitions)
+	PickEntries.Reserve(AffixDefinitionHandles.Num());
+	for (const FDataTableRowHandle& AffixDefinitionHandle : AffixDefinitionHandles)
 	{
-		if (AffixDefinition.IsValid())
+		const FAffixDefinitionEntry* AffixDefinitionEntry = AffixDefinitionHandle.GetRow<FAffixDefinitionEntry>(FString());
+		if (AffixDefinitionEntry)
 		{
 			FAffixPickEntry NewEntry;
-			NewEntry.PickChance = AffixDefinition.Get().PickChance;
-			NewEntry.PickType.Emplace(AffixDefinition);
+			NewEntry.PickChance = AffixDefinitionEntry->AffixDefinition.Get().PickChance;
+			NewEntry.PickType.Emplace(AffixDefinitionHandle);
 			PickEntries.Add(NewEntry);
 		}
 	}
@@ -246,15 +247,14 @@ bool UAffixPickFunction::PickAffix_Implementation(const FInstancedStruct& ItemIn
 	GetRandomPick(RandomPick);
 	if (RandomPick.PickType.IsSet())
 	{
-		OutAffix = FInstancedStruct::Make<FAffixDefinition>();
-		OutAffix.InitializeAs(RandomPick.PickType.GetValue().GetScriptStruct(), RandomPick.PickType.GetValue().GetMemory());
+		OutAffixHandle = RandomPick.PickType.GetValue();
 		return true;
 	}
 
 	return false;
 }
 
-bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, TArray<TInstancedStruct<FAffixDefinition>>& OutAffixes) const
+bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, TArray<FDataTableRowHandle>& OutAffixHandles) const
 {
 	const FItemInstance* ItemInstancePtr = ItemInstance.GetPtr<FItemInstance>();
 	if (!ItemInstancePtr
@@ -269,15 +269,12 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 		return false;
 	}
 
-	const FString Context;
-	TArray<FAffixDefinitionEntry*> AffixDefinitionEntries;
-	AffixPool->GetAllRows(Context, AffixDefinitionEntries);
-
 	// Generate the pool of all Affixes that meet our minimum requirements for selection.
-	TArray<TInstancedStruct<FAffixDefinition>> AffixDefinitions;
-	for (const FAffixDefinitionEntry* AffixDefinitionEntry : AffixDefinitionEntries)
+	OutAffixHandles.Empty();
+	const FString Context;
+	AffixPool->ForeachRow<FAffixDefinitionEntry>(Context, [&](const FName& RowName, const FAffixDefinitionEntry& AffixDefinitionEntry)
 	{
-		const TInstancedStruct<FAffixDefinition>& AffixDefinitionInstance = AffixDefinitionEntry->AffixDefinition;
+		const TInstancedStruct<FAffixDefinition>& AffixDefinitionInstance = AffixDefinitionEntry.AffixDefinition;
 		if (AffixDefinitionInstance.IsValid())
 		{
 			const FAffixDefinition& AffixDefinition = AffixDefinitionInstance.Get();
@@ -287,15 +284,15 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 				// 1. The ItemDefinition must be of the same or lower QualityLevel for this Affix to be available.
 				if (AffixDefinition.OccursForQualityLevel > 0 && ItemInstancePtr->ItemDefinition.Get().QualityLevel > AffixDefinition.OccursForQualityLevel)
 				{
-					continue;
+					return;
 				}
 
 				// =====================================================================================
 				// 2. The AffixLevel of the ItemInstance must be within the range defined on the AffixDefinition.
-				if ((AffixDefinition.MinimumRequiredItemAffixLevel > 0 && ItemInstancePtr->AffixLevel < AffixDefinition.MinimumRequiredItemAffixLevel) 
+				if ((AffixDefinition.MinimumRequiredItemAffixLevel > 0 && ItemInstancePtr->AffixLevel < AffixDefinition.MinimumRequiredItemAffixLevel)
 					|| (AffixDefinition.MaximumRequiredItemAffixLevel > 0 && ItemInstancePtr->AffixLevel > AffixDefinition.MaximumRequiredItemAffixLevel))
 				{
-					continue;
+					return;
 				}
 
 				// =====================================================================================
@@ -303,29 +300,31 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 				const FGameplayTag& ItemType = ItemInstancePtr->ItemDefinition.Get().ItemType;
 				if (ItemType.IsValid() && !ItemType.MatchesAny(AffixDefinition.OccursForItemTypes))
 				{
-					continue;
+					return;
 				}
 
 				// =====================================================================================
 				// 4. Check to see if the ItemInstance is of the right QualityType to receive this Affix.
 				if (ItemInstancePtr->QualityType.IsValid() && !ItemInstancePtr->QualityType.MatchesAny(AffixDefinition.OccursForQualityTypes))
 				{
-					continue;
+					return;
 				}
 
 				// =====================================================================================
 				// 5. Check if we already have an Affix of the same type.
 				if (ItemInstancePtr->HasAnyAffixOfType(AffixDefinition.AffixType))
 				{
-					continue;
+					return;
 				}
 
 				// Add the Affix to the list of ones we can select from.
-				AffixDefinitions.Add(AffixDefinitionInstance);
+				FDataTableRowHandle Handle;
+				Handle.DataTable = AffixPool;
+				Handle.RowName = RowName;
+				OutAffixHandles.Add(Handle);
 			}
 		}
-	}
+	});
 
-	OutAffixes = AffixDefinitions;
-	return AffixDefinitions.Num() > 0;
+	return OutAffixHandles.Num() > 0;
 }

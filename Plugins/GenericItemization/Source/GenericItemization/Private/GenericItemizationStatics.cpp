@@ -101,9 +101,9 @@ TOptional<TInstancedStruct<FItemDefinition>> UGenericItemizationStatics::PickIte
 	return Result;
 }
 
-TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAffixDefinitionForItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
+TOptional<FDataTableRowHandle> UGenericItemizationStatics::PickAffixDefinitionForItemInstance(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
 {
-	TOptional<TInstancedStruct<FAffixDefinition>> Result = TOptional<TInstancedStruct<FAffixDefinition>>();
+	TOptional<FDataTableRowHandle> Result = TOptional<FDataTableRowHandle>();
 
 	const FItemInstance* ItemInstancePtr = ItemInstance.GetPtr<FItemInstance>();
 	if (!ItemInstancePtr
@@ -129,20 +129,18 @@ TOptional<TInstancedStruct<FAffixDefinition>> UGenericItemizationStatics::PickAf
 
 		AffixPickFunctionCDO->AffixPool = AffixPool;
 		
+		FDataTableRowHandle PickedAffixHandle;
 		FInstancedStruct PickedAffix;
-		if (AffixPickFunctionCDO->PickAffix(ItemInstance, ItemInstancingContext, PickedAffix))
+		if (AffixPickFunctionCDO->PickAffix(ItemInstance, ItemInstancingContext, PickedAffixHandle))
 		{
-			TInstancedStruct<FAffixDefinition> InstancedAffixDefinition = TInstancedStruct<FAffixDefinition>::Make();
-			InstancedAffixDefinition.InitializeAsScriptStruct(PickedAffix.GetScriptStruct(), PickedAffix.GetMemory());
-
-			Result.Emplace(InstancedAffixDefinition);
+			Result.Emplace(PickedAffixHandle);
 		}
 	}
 
 	return Result;
 }
 
-TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(const TInstancedStruct<FAffixDefinition>& AffixDefinition, const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
+TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(const FDataTableRowHandle& AffixDefinitionHandle, const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext)
 {
 	TOptional<TInstancedStruct<FAffixInstance>> Result = TOptional<TInstancedStruct<FAffixInstance>>();
 
@@ -162,7 +160,7 @@ TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::Generate
 	FAffixInstance* MutableAffixInstance = NewAffixInstance.GetMutablePtr<FAffixInstance>();
 	if(MutableAffixInstance)
 	{
-		MutableAffixInstance->AffixDefinition = AffixDefinition;
+		MutableAffixInstance->SetAffixDefinition(AffixDefinitionHandle);
 
 		TInstancedStruct<FAffixInstance> AffixInstance = TInstancedStruct<FAffixInstance>::Make();
 		AffixInstance.InitializeAsScriptStruct(NewAffixInstance.GetScriptStruct(), NewAffixInstance.GetMemory());
@@ -329,7 +327,7 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FI
 				&& PredefinedAffix.DataTable->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct())
 				&& AffixDefinitionEntryPtr)
 			{
-				TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(AffixDefinitionEntryPtr->AffixDefinition, NewItemInstance, ItemInstancingContext);
+				TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(PredefinedAffix, NewItemInstance, ItemInstancingContext);
 				if (AffixInstance.IsSet() && AffixInstance.GetValue().IsValid())
 				{
 					// Successfully generated the Affix, now apply it to the ItemInstance.
@@ -359,10 +357,10 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FI
 			{
 				AffixCount--;
 
-				const TOptional<TInstancedStruct<FAffixDefinition>> AffixDefinition = UGenericItemizationStatics::PickAffixDefinitionForItemInstance(NewItemInstance, ItemInstancingContext);
-				if (AffixDefinition.IsSet() && AffixDefinition.GetValue().IsValid())
+				const TOptional<FDataTableRowHandle> AffixDefinitionHandle = UGenericItemizationStatics::PickAffixDefinitionForItemInstance(NewItemInstance, ItemInstancingContext);
+				if (AffixDefinitionHandle.IsSet() && !AffixDefinitionHandle.GetValue().IsNull())
 				{
-					const TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(AffixDefinition.GetValue(), NewItemInstance, ItemInstancingContext);
+					const TOptional<TInstancedStruct<FAffixInstance>> AffixInstance = UGenericItemizationStatics::GenerateAffixInstanceFromAffixDefinition(AffixDefinitionHandle.GetValue(), NewItemInstance, ItemInstancingContext);
 					if (AffixInstance.IsSet() && AffixInstance.GetValue().IsValid())
 					{
 						// Successfully generated the Affix, now apply it to the ItemInstance and move on.
