@@ -37,7 +37,7 @@ public:
 	 * @param ItemDefinitionCollection	The collection of ItemDefinitions we want to make a selection from.
 	 * @param ItemInstancingContext		Contains information about the Context around which an ItemInstance is called to be generated.
 	 */
-	static TOptional<TInstancedStruct<FItemDefinition>> PickItemDefinitionFromCollection(const TInstancedStruct<FItemDefinitionCollection>& ItemDefinitionCollection, const FInstancedStruct& ItemInstancingContext);
+	static TOptional<FDataTableRowHandle> PickItemDefinitionFromCollection(const TInstancedStruct<FItemDefinitionCollection>& ItemDefinitionCollection, const FInstancedStruct& ItemInstancingContext);
 
 	/**
 	 * Picks the ItemDefinition from the passed in entry.
@@ -47,7 +47,7 @@ public:
 	 * @param ItemDefinitionEntry	The entry of the particular ItemDefinition we are returning.
 	 * @param ItemInstancingContext	Contains information about the Context around which an ItemInstance is called to be generated.
 	 */
-	static TOptional<TInstancedStruct<FItemDefinition>> PickItemDefinitionEntry(const TInstancedStruct<FItemDefinitionRow>& ItemDefinitionEntry, const FInstancedStruct& ItemInstancingContext);
+	static TOptional<FDataTableRowHandle> PickItemDefinitionEntry(const TInstancedStruct<FItemDefinitionRow>& ItemDefinitionEntry, const FInstancedStruct& ItemInstancingContext);
 
 	/**
 	 * Gets a handle to a single AffixDefinition for the passed in ItemInstance that meets its requirements.
@@ -75,7 +75,7 @@ public:
 	 * @return									False if no picks were made.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
-	static bool PickItemDefinitionsFromDropTable(const FDataTableRowHandle& ItemDropTableCollectionEntry, const FInstancedStruct& ItemInstancingContext, TArray<FInstancedStruct>& OutItemDefinitions);
+	static bool PickItemDefinitionsFromDropTable(const FDataTableRowHandle& ItemDropTableCollectionEntry, const FInstancedStruct& ItemInstancingContext, TArray<FDataTableRowHandle>& OutItemDefinitionHandles);
 
 	/**
 	 * Generates a new Item Instance from the passed in ItemDefinition and ItemLevel.
@@ -86,7 +86,7 @@ public:
 	 * @return						False if an ItemInstance could not be generated.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
-	static bool GenerateItemInstanceFromItemDefinition(const FInstancedStruct& ItemDefinition, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItemInstance);
+	static bool GenerateItemInstanceFromItemDefinition(const FDataTableRowHandle& ItemDefinitionHandle, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItemInstance);
 
 	/**
 	 * Makes an exact copy of the ItemInstance except for its ItemId, ItemSeed and ItemStream, these are all regenerated.

@@ -246,7 +246,7 @@ bool UItemInventoryComponent::CanStackItems(UItemInventoryComponent* ItemToStack
 		return false;
 	}
 
-	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->ItemDefinition.GetPtr();
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->GetItemDefinition().GetPtr();
 	if (!ItemToStackWithItemDefinitionPtr)
 	{
 		return false;
@@ -290,7 +290,7 @@ bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* It
 		return false;
 	}
 
-	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->ItemDefinition.GetPtr();
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->GetItemDefinition().GetPtr();
 	if (!ItemToStackWithItemDefinitionPtr)
 	{
 		return false;
@@ -375,7 +375,7 @@ bool UItemInventoryComponent::StackItemFromItemDrop(AItemDrop* ItemToStackFromIt
 		return false;
 	}
 
-	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->ItemDefinition.GetPtr();
+	const FItemDefinition* const ItemToStackWithItemDefinitionPtr = ItemToStackWithPtr->GetItemDefinition().GetPtr();
 	if (!ItemToStackWithItemDefinitionPtr)
 	{
 		return false;

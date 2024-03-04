@@ -28,7 +28,8 @@ TOptional<TInstancedStruct<FItemDropTableType>> UGenericItemizationStatics::Pick
 	PickFunctionCDO->bIncludeNoPick = bIncludeNoPick;
 
 	FInstancedStruct PickedItem;
-	if (PickFunctionCDO->PickItem(DropTableCollectionEntry.Get().PickRequirements, ItemInstancingContext, PickedItem))
+	FDataTableRowHandle PickedItemHandle; // @NOTE: PickedItemhandle is unused in this context, since we are passing on a TableType instead.
+	if (PickFunctionCDO->PickItem(DropTableCollectionEntry.Get().PickRequirements, ItemInstancingContext, PickedItem, PickedItemHandle))
 	{
 		TInstancedStruct<FItemDropTableType> InstancedItem;
 		InstancedItem.InitializeAsScriptStruct(PickedItem.GetScriptStruct(), PickedItem.GetMemory());
@@ -39,9 +40,9 @@ TOptional<TInstancedStruct<FItemDropTableType>> UGenericItemizationStatics::Pick
 	return Result;
 }
 
-TOptional<TInstancedStruct<FItemDefinition>> UGenericItemizationStatics::PickItemDefinitionFromCollection(const TInstancedStruct<FItemDefinitionCollection>& ItemDefinitionCollection, const FInstancedStruct& ItemInstancingContext)
+TOptional<FDataTableRowHandle> UGenericItemizationStatics::PickItemDefinitionFromCollection(const TInstancedStruct<FItemDefinitionCollection>& ItemDefinitionCollection, const FInstancedStruct& ItemInstancingContext)
 {
-	TOptional<TInstancedStruct<FItemDefinition>> Result = TOptional<TInstancedStruct<FItemDefinition>>();
+	TOptional<FDataTableRowHandle> Result = TOptional<FDataTableRowHandle>();
 
 	if (!ItemDefinitionCollection.IsValid())
 	{
@@ -65,21 +66,19 @@ TOptional<TInstancedStruct<FItemDefinition>> UGenericItemizationStatics::PickIte
 	// Seed the PickFunction and then execute it.
 	PickFunctionCDO->ItemDefinitions = ItemDefinitionCollection.Get().ItemDefinitions;
 
-	FInstancedStruct PickedItemDefinition;
-	if (PickFunctionCDO->PickItem(ItemDefinitionCollection.Get().PickRequirements, ItemInstancingContext, PickedItemDefinition))
+	FDataTableRowHandle PickItemDefinitionHandle;
+	FInstancedStruct PickedItem; // @NOTE: PickedItem is unused in this context, since we are passing on a Handle instead.
+	if (PickFunctionCDO->PickItem(ItemDefinitionCollection.Get().PickRequirements, ItemInstancingContext, PickedItem, PickItemDefinitionHandle))
 	{
-		TInstancedStruct<FItemDefinition> InstancedItemDefinition; 
-		InstancedItemDefinition.InitializeAsScriptStruct(PickedItemDefinition.GetScriptStruct(), PickedItemDefinition.GetMemory());
-
-		Result.Emplace(InstancedItemDefinition);
+		Result.Emplace(PickItemDefinitionHandle);
 	}
 
 	return Result;
 }
 
-TOptional<TInstancedStruct<FItemDefinition>> UGenericItemizationStatics::PickItemDefinitionEntry(const TInstancedStruct<FItemDefinitionRow>& ItemDefinitionEntry, const FInstancedStruct& ItemInstancingContext)
+TOptional<FDataTableRowHandle> UGenericItemizationStatics::PickItemDefinitionEntry(const TInstancedStruct<FItemDefinitionRow>& ItemDefinitionEntry, const FInstancedStruct& ItemInstancingContext)
 {
-	TOptional<TInstancedStruct<FItemDefinition>> Result = TOptional<TInstancedStruct<FItemDefinition>>();
+	TOptional<FDataTableRowHandle> Result = TOptional<FDataTableRowHandle>();
 
 	const FItemDefinitionEntry* ItemDefinitionEntryPtr = ItemDefinitionEntry.Get().ItemDefinitionRow.GetRow<FItemDefinitionEntry>(FString());
 	if (!IsValid(ItemDefinitionEntry.Get().ItemDefinitionRow.DataTable) 
@@ -94,7 +93,7 @@ TOptional<TInstancedStruct<FItemDefinition>> UGenericItemizationStatics::PickIte
 		const FItemDefinition& ItemDefinition = ItemDefinitionEntryPtr->ItemDefinition.Get();
 		if (ItemDefinition.bSpawnable)
 		{
-			Result.Emplace(ItemDefinitionEntryPtr->ItemDefinition);
+			Result.Emplace(ItemDefinitionEntry.Get().ItemDefinitionRow);
 		}
 	}
 
@@ -107,19 +106,19 @@ TOptional<FDataTableRowHandle> UGenericItemizationStatics::PickAffixDefinitionFo
 
 	const FItemInstance* ItemInstancePtr = ItemInstance.GetPtr<FItemInstance>();
 	if (!ItemInstancePtr
-		|| !ItemInstancePtr->ItemDefinition.IsValid()
-		|| !IsValid(ItemInstancePtr->ItemDefinition.Get().InstancingFunction))
+		|| !ItemInstancePtr->GetItemDefinition().IsValid()
+		|| !IsValid(ItemInstancePtr->GetItemDefinition().Get().InstancingFunction))
 	{
 		return Result;
 	}
 
-	UDataTable* const AffixPool = ItemInstancePtr->ItemDefinition.Get().AffixPool;
+	UDataTable* const AffixPool = ItemInstancePtr->GetItemDefinition().Get().AffixPool;
 	if (!AffixPool || !AffixPool->GetRowStruct()->IsChildOf(FAffixDefinitionEntry::StaticStruct()))
 	{
 		return Result;
 	}
 
-	const UItemInstancingFunction* const InstancingFunctionCDO = ItemInstancePtr->ItemDefinition.Get().InstancingFunction.GetDefaultObject();
+	const UItemInstancingFunction* const InstancingFunctionCDO = ItemInstancePtr->GetItemDefinition().Get().InstancingFunction.GetDefaultObject();
 	check(InstancingFunctionCDO);
 
 	if (IsValid(InstancingFunctionCDO->AffixPickFunction))
@@ -130,7 +129,6 @@ TOptional<FDataTableRowHandle> UGenericItemizationStatics::PickAffixDefinitionFo
 		AffixPickFunctionCDO->AffixPool = AffixPool;
 		
 		FDataTableRowHandle PickedAffixHandle;
-		FInstancedStruct PickedAffix;
 		if (AffixPickFunctionCDO->PickAffix(ItemInstance, ItemInstancingContext, PickedAffixHandle))
 		{
 			Result.Emplace(PickedAffixHandle);
@@ -146,13 +144,13 @@ TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::Generate
 
 	const FItemInstance* ItemInstancePtr = ItemInstance.GetPtr<FItemInstance>();
 	if (!ItemInstancePtr 
-		|| !ItemInstancePtr->ItemDefinition.IsValid() 
-		|| !IsValid(ItemInstancePtr->ItemDefinition.Get().InstancingFunction))
+		|| !ItemInstancePtr->GetItemDefinition().IsValid()
+		|| !IsValid(ItemInstancePtr->GetItemDefinition().Get().InstancingFunction))
 	{
 		return Result;
 	}
 
-	const UItemInstancingFunction* const InstancingFunctionCDO = ItemInstancePtr->ItemDefinition.Get().InstancingFunction.GetDefaultObject();
+	const UItemInstancingFunction* const InstancingFunctionCDO = ItemInstancePtr->GetItemDefinition().Get().InstancingFunction.GetDefaultObject();
 	check(InstancingFunctionCDO);
 
 	FInstancedStruct NewAffixInstance;
@@ -171,7 +169,7 @@ TOptional<TInstancedStruct<FAffixInstance>> UGenericItemizationStatics::Generate
 	return Result;
 }
 
-bool PickItemDefinition_Recursive(const TInstancedStruct<FItemDropTableType>& InPick, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutPick)
+bool PickItemDefinition_Recursive(const TInstancedStruct<FItemDropTableType>& InPick, const FInstancedStruct& ItemInstancingContext, FDataTableRowHandle& OutItemDefinitionHandle)
 {
 	if (!InPick.IsValid())
 	{
@@ -185,19 +183,17 @@ bool PickItemDefinition_Recursive(const TInstancedStruct<FItemDropTableType>& In
 		const TOptional<TInstancedStruct<FItemDropTableType>> DropTableType = UGenericItemizationStatics::PickDropTableCollectionEntry(PickedItemDropTableCollection, ItemInstancingContext, false);
 		if (DropTableType.IsSet())
 		{
-			return PickItemDefinition_Recursive(DropTableType.GetValue(), ItemInstancingContext, OutPick);
+			return PickItemDefinition_Recursive(DropTableType.GetValue(), ItemInstancingContext, OutItemDefinitionHandle);
 		}
 	}
 	else if (InPick.GetScriptStruct()->IsChildOf(FItemDefinitionCollection::StaticStruct()))
 	{
 		TInstancedStruct<FItemDefinitionCollection> PickedItemDefinitionCollection;
 		PickedItemDefinitionCollection.InitializeAsScriptStruct(InPick.GetScriptStruct(), InPick.GetMemory());
-		const TOptional<TInstancedStruct<FItemDefinition>> ItemDefinition = UGenericItemizationStatics::PickItemDefinitionFromCollection(PickedItemDefinitionCollection, ItemInstancingContext);
-		if (ItemDefinition.IsSet())
+		const TOptional<FDataTableRowHandle> ItemDefinitionHandle = UGenericItemizationStatics::PickItemDefinitionFromCollection(PickedItemDefinitionCollection, ItemInstancingContext);
+		if (ItemDefinitionHandle.IsSet())
 		{
-			FInstancedStruct Item;
-			Item.InitializeAs(ItemDefinition.GetValue().GetScriptStruct(), ItemDefinition.GetValue().GetMemory());
-			OutPick = Item;
+			OutItemDefinitionHandle = ItemDefinitionHandle.GetValue();
 			return true;
 		}
 	}
@@ -205,12 +201,10 @@ bool PickItemDefinition_Recursive(const TInstancedStruct<FItemDropTableType>& In
 	{
 		TInstancedStruct<FItemDefinitionRow> PickedItemDefinitionRow;
 		PickedItemDefinitionRow.InitializeAsScriptStruct(InPick.GetScriptStruct(), InPick.GetMemory());
-		const TOptional<TInstancedStruct<FItemDefinition>> ItemDefinition = UGenericItemizationStatics::PickItemDefinitionEntry(PickedItemDefinitionRow, ItemInstancingContext);
-		if (ItemDefinition.IsSet())
+ 		const TOptional<FDataTableRowHandle> ItemDefinitionHandle = UGenericItemizationStatics::PickItemDefinitionEntry(PickedItemDefinitionRow, ItemInstancingContext);
+ 		if (ItemDefinitionHandle.IsSet())
 		{
-			FInstancedStruct Item;
-			Item.InitializeAs(ItemDefinition.GetValue().GetScriptStruct(), ItemDefinition.GetValue().GetMemory());
-			OutPick = Item;
+			OutItemDefinitionHandle = ItemDefinitionHandle.GetValue();
 			return true;
 		}
 	}
@@ -218,7 +212,7 @@ bool PickItemDefinition_Recursive(const TInstancedStruct<FItemDropTableType>& In
 	return false;
 }
 
-bool UGenericItemizationStatics::PickItemDefinitionsFromDropTable(const FDataTableRowHandle& ItemDropTableCollectionEntry, const FInstancedStruct& ItemInstancingContext, TArray<FInstancedStruct>& OutItemDefinitions)
+bool UGenericItemizationStatics::PickItemDefinitionsFromDropTable(const FDataTableRowHandle& ItemDropTableCollectionEntry, const FInstancedStruct& ItemInstancingContext, TArray<FDataTableRowHandle>& OutItemDefinitionHandles)
 {
 	const FDataTableRowHandle& DropTable = ItemDropTableCollectionEntry;
 	const FItemDropTableCollectionEntry* DropTableCollection = DropTable.GetRow<FItemDropTableCollectionEntry>(FString());
@@ -230,7 +224,7 @@ bool UGenericItemizationStatics::PickItemDefinitionsFromDropTable(const FDataTab
 	}
 
 	int32 PickCount = DropTableCollection->PickCount;
-	OutItemDefinitions.Empty(PickCount);
+	OutItemDefinitionHandles.Empty(PickCount);
 	while (PickCount > 0)
 	{
 		PickCount--;
@@ -242,20 +236,26 @@ bool UGenericItemizationStatics::PickItemDefinitionsFromDropTable(const FDataTab
 		const TOptional<TInstancedStruct<FItemDropTableType>> InitialPickResult = UGenericItemizationStatics::PickDropTableCollectionEntry(TInstancedStruct<FItemDropTableCollectionRow>::Make(DropTableCollectionRow), ItemInstancingContext, true);
 		if (InitialPickResult.IsSet()) // If this is false, then we either ended with NoPick being selected or something failed.
 		{
-			FInstancedStruct FinalPick;
-			if (PickItemDefinition_Recursive(InitialPickResult.GetValue(), ItemInstancingContext, FinalPick))
+			FDataTableRowHandle PickedItemDefinitionHandle;
+			if (PickItemDefinition_Recursive(InitialPickResult.GetValue(), ItemInstancingContext, PickedItemDefinitionHandle))
 			{
-				OutItemDefinitions.Add(FinalPick);
+				OutItemDefinitionHandles.Add(PickedItemDefinitionHandle);
 			}
 		}
 	}
 
-	return OutItemDefinitions.Num() > 0;
+	return OutItemDefinitionHandles.Num() > 0;
 }
 
-bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FInstancedStruct& ItemDefinition, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItemInstance)
+bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FDataTableRowHandle& ItemDefinitionHandle, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItemInstance)
 {
-	if (!ItemDefinition.IsValid() || !ItemDefinition.GetScriptStruct()->IsChildOf(FItemDefinition::StaticStruct()))
+	if (ItemDefinitionHandle.IsNull())
+	{
+		return false;
+	}
+
+	const FItemDefinitionEntry* ItemDefinitionEntry = ItemDefinitionHandle.GetRow<FItemDefinitionEntry>(FString());
+	if (!ItemDefinitionEntry)
 	{
 		return false;
 	}
@@ -270,9 +270,7 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FI
 	// =====================================================================================
 	// 1. Create the new ItemInstance from the ItemDefinition that we have.
 
-	TInstancedStruct<FItemDefinition> ItemInstanceItemDefinition;
-	ItemInstanceItemDefinition.InitializeAsScriptStruct(ItemDefinition.GetScriptStruct(), ItemDefinition.GetMemory());
-
+	const TInstancedStruct<FItemDefinition>& ItemInstanceItemDefinition = ItemDefinitionEntry->ItemDefinition;
 	if (!IsValid(ItemInstanceItemDefinition.Get().InstancingFunction))
 	{
 		return false;
@@ -289,7 +287,7 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FI
 		return false;
 	}
 
-	MutableItemInstance->ItemDefinition = ItemInstanceItemDefinition;
+	MutableItemInstance->SetItemDefinition(ItemDefinitionHandle);
 	MutableItemInstance->ItemSeed = FMath::Rand(); // @TODO: How do we generate the ItemSeed? Do we need some kind of global manager that handles that?
 	MutableItemInstance->ItemStream.Initialize(MutableItemInstance->ItemSeed);
 	MutableItemInstance->ItemLevel = FMath::Clamp<int32>(ItemInstancingContextPtr->ItemLevel, 1, InstancingFunctionCDO->GetMaximumItemLevel());

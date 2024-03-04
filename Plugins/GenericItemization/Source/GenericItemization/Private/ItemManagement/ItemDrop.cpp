@@ -38,9 +38,9 @@ void AItemDrop::GetItemInstanceStruct(FItemInstance& OutItemInstanceStruct) cons
 
 void AItemDrop::GetItemDefinitionStruct(FItemDefinition& OutItemDefinitionStruct) const
 {
-	if (ItemInstance.IsValid() && ItemInstance.Get().ItemDefinition.IsValid())
+	if (ItemInstance.IsValid() && ItemInstance.Get().GetItemDefinition().IsValid())
 	{
-		OutItemDefinitionStruct = ItemInstance.Get().ItemDefinition.Get();
+		OutItemDefinitionStruct = ItemInstance.Get().GetItemDefinition().Get();
 	}
 }
 

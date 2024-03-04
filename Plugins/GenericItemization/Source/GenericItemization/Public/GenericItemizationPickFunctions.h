@@ -32,7 +32,7 @@ public:
 	 * Returns false if no Item was selected. 
 	 */
 	UFUNCTION(BlueprintNativeEvent)
-	bool PickItem(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem) const;
+	bool PickItem(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem, FDataTableRowHandle& OutItemHandle) const;
 };
 
 /**
@@ -45,7 +45,7 @@ class UItemDropTableCollectionPickFunction : public UItemPickFunction
 
 public:
 
-	virtual bool PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem) const override;
+	virtual bool PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem, FDataTableRowHandle& OutItemHandle) const override;
 
 	/* The Drop Table Collection Entry we will make a selection from. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (DisplayPriority = "1", RowType = "/Script/GenericItemization.ItemDropTableCollectionEntry"))
@@ -72,7 +72,7 @@ class UItemDefinitionCollectionPickFunction : public UItemPickFunction
 
 public:
 
-	virtual bool PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem) const override;
+	virtual bool PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem, FDataTableRowHandle& OutItemHandle) const override;
 
 	/* The Definitions of all Items we can select from. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (DisplayPriority = "1", RequiredAssetDataTags = "RowStructure=/Script/GenericItemization.ItemDefinitionEntry"))

@@ -20,8 +20,8 @@ bool UItemStackSettings::CanStackWith_Implementation(const FInstancedStruct& Ite
 		return false;
 	}
 
-	const TInstancedStruct<FItemDefinition>& ItemToStackFromDefinitionInstance = ItemToStackFromPtr->ItemDefinition;
-	const TInstancedStruct<FItemDefinition>& ItemToStackWithDefinitionInstance = ItemToStackWithPtr->ItemDefinition;
+	const TInstancedStruct<FItemDefinition>& ItemToStackFromDefinitionInstance = ItemToStackFromPtr->GetItemDefinition();
+	const TInstancedStruct<FItemDefinition>& ItemToStackWithDefinitionInstance = ItemToStackWithPtr->GetItemDefinition();
 	if (!ItemToStackFromDefinitionInstance.IsValid() || !ItemToStackWithDefinitionInstance.IsValid())
 	{
 		return false;

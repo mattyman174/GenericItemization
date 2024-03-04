@@ -9,12 +9,12 @@
 /* Items
 /************************************************************************/
 
-bool UItemPickFunction::PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem) const
+bool UItemPickFunction::PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem, FDataTableRowHandle& OutItemHandle) const
 {
 	return false;
 }
 
-bool UItemDropTableCollectionPickFunction::PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem) const
+bool UItemDropTableCollectionPickFunction::PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem, FDataTableRowHandle& OutItemHandle) const
 {
 	const FItemDropTableCollectionEntry* DropTableCollection = ItemDropTableCollectionEntry.GetRow<FItemDropTableCollectionEntry>(FString());
 	if (!IsValid(ItemDropTableCollectionEntry.DataTable)
@@ -102,37 +102,38 @@ bool UItemDropTableCollectionPickFunction::DoesItemDropTableCollectionSatisfyPic
 	return true;
 }
 
-bool UItemDefinitionCollectionPickFunction::PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem) const
+bool UItemDefinitionCollectionPickFunction::PickItem_Implementation(const FInstancedStruct& PickRequirements, const FInstancedStruct& ItemInstancingContext, FInstancedStruct& OutItem, FDataTableRowHandle& OutItemHandle) const
 {
 	if (!IsValid(ItemDefinitions) || !ItemDefinitions->GetRowStruct()->IsChildOf(FItemDefinitionEntry::StaticStruct()))
 	{
 		return false;
 	}
 
-	const FString Context;
-	TArray<FItemDefinitionEntry*> ItemDefinitionEntries;
-	ItemDefinitions->GetAllRows(Context, ItemDefinitionEntries);
-
 	// Seed all of the Picks we will make a selection from.
-	using FItemPickEntry = FPickEntry<TInstancedStruct<FItemDefinition>>;
+	using FItemPickEntry = FPickEntry<FDataTableRowHandle>;
 	TArray<FItemPickEntry> PickEntries;
-	PickEntries.Reserve(ItemDefinitionEntries.Num());
-
-	for (const FItemDefinitionEntry* ItemDefinition : ItemDefinitionEntries)
+	ItemDefinitions->ForeachRow<FItemDefinitionEntry>(FString(), [&](const FName& RowName, const FItemDefinitionEntry& ItemDefinitionEntry)
 	{
+		const FItemDefinitionEntry* ItemDefinition = &ItemDefinitionEntry;
 		if (ItemDefinition && ItemDefinition->ItemDefinition.IsValid())
 		{
 			FInstancedStruct InstancedItemDefinition = FInstancedStruct::Make<FItemDefinition>();
 			InstancedItemDefinition.InitializeAs(ItemDefinition->ItemDefinition.GetScriptStruct(), ItemDefinition->ItemDefinition.GetMemory());
-			if(ItemDefinition->ItemDefinition.Get().bSpawnable && DoesItemDefinitionSatisfyPickRequirements(PickRequirements, ItemInstancingContext, InstancedItemDefinition))
+			if (ItemDefinition->ItemDefinition.Get().bSpawnable && DoesItemDefinitionSatisfyPickRequirements(PickRequirements, ItemInstancingContext, InstancedItemDefinition))
 			{
 				FItemPickEntry NewEntry;
 				NewEntry.PickChance = ItemDefinition->ItemDefinition.Get().PickChance;
-				NewEntry.PickType.Emplace(ItemDefinition->ItemDefinition);
+
+				// Add the Item to the list of ones we can select from.
+				FDataTableRowHandle Handle;
+				Handle.DataTable = ItemDefinitions;
+				Handle.RowName = RowName;
+				NewEntry.PickType.Emplace(Handle);
+
 				PickEntries.Add(NewEntry);
 			}
 		}
-	}
+	});
 
 	// @TODO: We need to make this generic so it can be used by any Pick type code and overridden if necessary to implement other algorithms.
 	auto GetRandomPick = [&PickEntries](FItemPickEntry& OutEntry)
@@ -166,8 +167,7 @@ bool UItemDefinitionCollectionPickFunction::PickItem_Implementation(const FInsta
 	GetRandomPick(RandomPick);
 	if (RandomPick.PickType.IsSet())
 	{
-		OutItem = FInstancedStruct::Make<FItemDefinition>();
-		OutItem.InitializeAs(RandomPick.PickType.GetValue().GetScriptStruct(), RandomPick.PickType.GetValue().GetMemory());
+		OutItemHandle = RandomPick.PickType.GetValue();
 		return true;
 	}
 
@@ -258,8 +258,8 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 {
 	const FItemInstance* ItemInstancePtr = ItemInstance.GetPtr<FItemInstance>();
 	if (!ItemInstancePtr
-		|| !ItemInstancePtr->ItemDefinition.IsValid()
-		|| !IsValid(ItemInstancePtr->ItemDefinition.Get().InstancingFunction))
+		|| !ItemInstancePtr->GetItemDefinition().IsValid()
+		|| !IsValid(ItemInstancePtr->GetItemDefinition().Get().InstancingFunction))
 	{
 		return false;
 	}
@@ -271,8 +271,7 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 
 	// Generate the pool of all Affixes that meet our minimum requirements for selection.
 	OutAffixHandles.Empty();
-	const FString Context;
-	AffixPool->ForeachRow<FAffixDefinitionEntry>(Context, [&](const FName& RowName, const FAffixDefinitionEntry& AffixDefinitionEntry)
+	AffixPool->ForeachRow<FAffixDefinitionEntry>(FString(), [&](const FName& RowName, const FAffixDefinitionEntry& AffixDefinitionEntry)
 	{
 		const TInstancedStruct<FAffixDefinition>& AffixDefinitionInstance = AffixDefinitionEntry.AffixDefinition;
 		if (AffixDefinitionInstance.IsValid())
@@ -282,7 +281,7 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 			{
 				// =====================================================================================
 				// 1. The ItemDefinition must be of the same or lower QualityLevel for this Affix to be available.
-				if (AffixDefinition.OccursForQualityLevel > 0 && ItemInstancePtr->ItemDefinition.Get().QualityLevel > AffixDefinition.OccursForQualityLevel)
+				if (AffixDefinition.OccursForQualityLevel > 0 && ItemInstancePtr->GetItemDefinition().Get().QualityLevel > AffixDefinition.OccursForQualityLevel)
 				{
 					return;
 				}
@@ -297,7 +296,7 @@ bool UAffixPickFunction::GetAffixesWithMinimumNativeRequirements(const FInstance
 
 				// =====================================================================================
 				// 3. Make sure the ItemDefinition is of a valid ItemType to receive this Affix.
-				const FGameplayTag& ItemType = ItemInstancePtr->ItemDefinition.Get().ItemType;
+				const FGameplayTag& ItemType = ItemInstancePtr->GetItemDefinition().Get().ItemType;
 				if (ItemType.IsValid() && !ItemType.MatchesAny(AffixDefinition.OccursForItemTypes))
 				{
 					return;

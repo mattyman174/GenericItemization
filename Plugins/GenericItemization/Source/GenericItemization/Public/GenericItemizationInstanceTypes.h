@@ -97,10 +97,6 @@ public:
 
     FItemInstance();
 
-    /* The static data that describes this Item. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    TInstancedStruct<FItemDefinition> ItemDefinition;
-
     /* The Unique Id of the Item. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     FGuid ItemId;
@@ -129,8 +125,8 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BaseStruct = "/Script/GenericItemization.AffixInstance"))
     TArray<TInstancedStruct<FAffixInstance>> Affixes;
 
-    /* The Context information around which this ItemInstance was called to be generated. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    /* The Context information around which this ItemInstance was called to be generated, this is not replicated. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, NotReplicated)
     TInstancedStruct<FItemInstancingContext> InstancingContext;
 
     /* The number of stacks of this Item. */
@@ -141,6 +137,30 @@ public:
 
     bool IsValid() const;
 
+    bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+    const TInstancedStruct<FItemDefinition>& GetItemDefinition() const { return ItemDefinition; }
+    void SetItemDefinition(const FDataTableRowHandle& Handle);
+
+protected:
+
+    /* The static data that describes this Item. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, NotReplicated, meta = (AllowPrivateAccess))
+    TInstancedStruct<FItemDefinition> ItemDefinition;
+
+    /* Handle to the actual ItemDefinition, this is serialized instead of the ItemDefinition itself. */
+    UPROPERTY()
+    FDataTableRowHandle ItemDefinitionHandle;
+
+};
+
+template<>
+struct TStructOpsTypeTraits<FItemInstance> : public TStructOpsTypeTraitsBase2<FItemInstance>
+{
+    enum
+    {
+        WithNetSerializer = true,
+    };
 };
 
 USTRUCT()

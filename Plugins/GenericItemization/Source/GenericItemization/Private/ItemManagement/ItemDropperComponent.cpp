@@ -52,15 +52,15 @@ bool UItemDropperComponent::DropItems_Implementation(FInstancedStruct UserContex
 
 		// Grab all of the ItemDefinitions that we will be creating ItemInstances for.
 		// These represent successfully picked Items that will be dropped from that ItemDropTable.
-		TArray<FInstancedStruct> ItemDefinitions;
-		if (UGenericItemizationStatics::PickItemDefinitionsFromDropTable(ItemDropTable, ItemInstancingContext, ItemDefinitions))
+		TArray<FDataTableRowHandle> ItemDefinitionHandles;
+		if (UGenericItemizationStatics::PickItemDefinitionsFromDropTable(ItemDropTable, ItemInstancingContext, ItemDefinitionHandles))
 		{
 			// Generate all of the actual ItemInstances for the ItemDefinitions we selected.
 			TArray<FInstancedStruct> ItemInstances;
-			for (const FInstancedStruct& ItemDefinition : ItemDefinitions)
+			for (const FDataTableRowHandle& ItemDefinitionHandle : ItemDefinitionHandles)
 			{
 				FInstancedStruct ItemInstance;
-				if (UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(ItemDefinition, ItemInstancingContext, ItemInstance))
+				if (UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(ItemDefinitionHandle, ItemInstancingContext, ItemInstance))
 				{
 					ItemInstances.Add(ItemInstance);
 				}

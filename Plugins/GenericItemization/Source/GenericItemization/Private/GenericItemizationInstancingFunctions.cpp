@@ -33,7 +33,7 @@ bool UItemInstancingFunction::CalculateAffixLevel_Implementation(const FInstance
 		return false;
 	}
 
-	const TInstancedStruct<FItemDefinition>& ItemDefinition = ItemInstancePtr->ItemDefinition;
+	const TInstancedStruct<FItemDefinition>& ItemDefinition = ItemInstancePtr->GetItemDefinition();
 	if (!ItemDefinition.IsValid())
 	{
 		return false;
@@ -75,7 +75,7 @@ bool UItemInstancingFunction::SelectItemQualityType_Implementation(const FInstan
 		return false;
 	}
 
-	const TInstancedStruct<FItemDefinition>& ItemDefinition = ItemInstancePtr->ItemDefinition;
+	const TInstancedStruct<FItemDefinition>& ItemDefinition = ItemInstancePtr->GetItemDefinition();
 	if (!ItemDefinition.IsValid())
 	{
 		return false;
@@ -163,7 +163,7 @@ bool UItemInstancingFunction::DetermineAffixCount_Implementation(const FInstance
 		return false;
 	}
 
-	const TInstancedStruct<FItemDefinition>& ItemDefinition = ItemInstancePtr->ItemDefinition;
+	const TInstancedStruct<FItemDefinition>& ItemDefinition = ItemInstancePtr->GetItemDefinition();
 	if (!ItemDefinition.IsValid())
 	{
 		return false;

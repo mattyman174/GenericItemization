@@ -1,6 +1,5 @@
 #include "GenericItemizationInstanceTypes.h"
 #include "ItemManagement/ItemInventoryComponent.h"
-#include "Engine/DataTable.h"
 
 /************************************************************************/
 /* Affixes
@@ -66,6 +65,74 @@ bool FItemInstance::HasAnyAffixOfType(const FGameplayTag& AffixType) const
 bool FItemInstance::IsValid() const
 {
 	return ItemSeed != -1;
+}
+
+bool FItemInstance::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << ItemId;
+	Ar << ItemSeed;
+	Ar << ItemLevel;
+	Ar << AffixLevel;
+	Ar << QualityType;
+	Ar << StackCount;
+
+	// Ar << ItemDefinitionHandle;
+	Ar << ItemDefinitionHandle.DataTable;
+	Ar << ItemDefinitionHandle.RowName;
+	if (Ar.IsLoading())
+	{
+		SetItemDefinition(ItemDefinitionHandle);
+	}
+
+	//Ar << ItemStream;
+	int32 ItemStreamSeed;
+	if (Ar.IsSaving())
+	{
+		ItemStreamSeed = ItemStream.GetCurrentSeed();
+	}
+	Ar << ItemStreamSeed;
+	if (Ar.IsLoading())
+	{
+		ItemStream.Initialize(ItemStreamSeed);
+	}
+
+	// Ar << Affixes;
+	TArray<FInstancedStruct> ReplicatedAffixes;
+	if (Ar.IsSaving())
+	{
+		for (const TInstancedStruct<FAffixInstance>& Affix : Affixes)
+		{
+			FInstancedStruct ReplicatedAffix;
+			ReplicatedAffix.InitializeAs(Affix.GetScriptStruct(), Affix.GetMemory());
+			ReplicatedAffixes.Add(ReplicatedAffix);
+		}
+	}
+	SafeNetSerializeTArray_WithNetSerialize<31>(Ar, ReplicatedAffixes, Map); // @NOTE: This means we have a practical maximum of 32 Affixes per ItemInstance. Should we expose this somehow?
+	if (Ar.IsLoading())
+	{
+		for (const FInstancedStruct& ReplicatedAffix : ReplicatedAffixes)
+		{
+			TInstancedStruct<FAffixInstance> Affix;
+			Affix.InitializeAsScriptStruct(ReplicatedAffix.GetScriptStruct(), ReplicatedAffix.GetMemory());
+			Affixes.Add(Affix);
+		}
+	}
+
+	bOutSuccess = true;
+	return true;
+}
+
+void FItemInstance::SetItemDefinition(const FDataTableRowHandle& Handle)
+{
+	ItemDefinitionHandle = Handle;
+	if (!ItemDefinitionHandle.IsNull())
+	{
+		const FItemDefinitionEntry* ItemDefinitionEntry = ItemDefinitionHandle.GetRow<FItemDefinitionEntry>(FString());
+		if (ItemDefinitionEntry)
+		{
+			ItemDefinition = ItemDefinitionEntry->ItemDefinition;
+		}
+	}
 }
 
 void FFastItemInstance::Initialize(FInstancedStruct& InItemInstance, FInstancedStruct& InUserContextData)
