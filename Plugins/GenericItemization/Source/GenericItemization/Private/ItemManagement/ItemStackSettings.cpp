@@ -2,7 +2,6 @@
 
 #include "ItemManagement/ItemStackSettings.h"
 #include "GenericItemizationInstanceTypes.h"
-#include "StructView.h"
 
 UItemStackSettings::UItemStackSettings()
 {
@@ -11,10 +10,8 @@ UItemStackSettings::UItemStackSettings()
 
 bool UItemStackSettings::CanStackWith_Implementation(const FInstancedStruct& ItemToStackFrom, const FInstancedStruct& ItemToStackWith, int32& OutRemainder) const
 {
-	const FConstStructView ItemToStackFromView = FConstStructView(ItemToStackFrom);
-	const FConstStructView ItemToStackWithView = FConstStructView(ItemToStackWith);
-	const FItemInstance* const ItemToStackFromPtr = ItemToStackFromView.GetPtr<const FItemInstance>();
-	const FItemInstance* const ItemToStackWithPtr = ItemToStackWithView.GetPtr<const FItemInstance>();
+	const FItemInstance* const ItemToStackFromPtr = ItemToStackFrom.GetPtr<const FItemInstance>();
+	const FItemInstance* const ItemToStackWithPtr = ItemToStackWith.GetPtr<const FItemInstance>();
 	if (!ItemToStackFromPtr || !ItemToStackWithPtr)
 	{
 		return false;

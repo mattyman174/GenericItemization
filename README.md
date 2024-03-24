@@ -48,8 +48,10 @@ Join us on Discord to talk about the plugin!
 >>>>5.2.1.6 [User Data](#item-definition-user-data)  
 >>>>5.2.1.7 [Item Instancing Function](#item-definition-instancing-function)  
 >>>>5.2.1.8 [Item Stack Settings](#item-definition-stack-settings)  
+>>>>5.2.1.9 [Item Socket Settings](#item-definition-socket-settings)  
 >>>
 >>>5.2.2 [Item Instance](#item-instance)  
+>>>5.2.3 [Item Sockets](#item-sockets)  
 >>
 >>5.3 [Affixes](#affixes)  
 >>>5.3.1 [Affix Definition](#affix-definition)
@@ -59,6 +61,7 @@ Join us on Discord to talk about the plugin!
 >>>>5.3.1.4 [Occurs for Item Type, Quality Type and Quality Level](#affix-definition-occurs-for)  
 >>>>5.3.1.5 [Required Item Affix Level](#affix-definition-required-affix-level)  
 >>>>5.3.1.6 [Modifiers](#affix-definition-modifiers)  
+>>>>5.3.1.7 [Should Aggregate In Sockets](#affix-definition-aggregate-sockets)  
 >>>
 >>>5.3.2 [Affix Instance](#affix-instance)  
 >>
@@ -195,7 +198,7 @@ Once it is integrated as explained above, you are free to move ahead and add Ite
 
 The Class Layout of the entire Generic Itemization Plugin is displayed below. It shows the relationships between different classes and struct types. As well as how some of their properties relate to one another. It also shows all of the functions available to each class.
 
-![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystem_1_2.png)
+![Item System Layout](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemSystem_1_3.png)
 
 You will want to view it in full as a separate window in order to make out its details.
 
@@ -490,6 +493,17 @@ The Sample Project implements stackable Items in the form of both Potions and Go
 
 **[⬆ Back to Top](#table-of-contents)**
 
+<a name="item-definition-socket-settings"></a>
+### 5.2.1.9 Item Socket Settings
+
+Items that can contains Sockets will enable and define the settings which govern the Sockets that they can contain.
+
+The `ItemSocketSettings` is an Object that describes the `SocketDefinition`s of the maximum number of Sockets that an Item can be assigned during the Item Instancing Process.
+
+The `SocketDefinition` is a simple structure that describes restrictions on what `ItemType`s and `QualityType`s of Items can be inserted into that particular Socket. The `ItemSocketSettings` can choose to define any number of Sockets and they do not all have to be the same. This way you can have different Sockets accepting different types of Items.
+
+**[⬆ Back to Top](#table-of-contents)**
+
 <a name="item-instance"></a>
 ### 5.2.2 Item Instance
 
@@ -502,6 +516,29 @@ They contain a list of all of their Affixes as well as the `ItemInstancingContex
 ![Item Instance](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/ItemInstance.JPG)
 
 The Struct type of an `ItemInstance` can only be overridden from the C++ function `UItemInstancingFunction::MakeItemInstance`, due to Blueprint Structs not being able to support inheritance from a base type (as `ItemInstance`s must be derived from the `FItemInstance` struct type). If you need to introduce additional functionality or properties to an `ItemInstance` you would need to manage it in C++. Alternatively utilizing Affixes might be a sufficient method depending on your needs.
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="item-sockets"></a>
+### 5.2.3 Item Sockets
+
+Sockets on Items are a nesting mechanism for allowing an `ItemInstance` to contain another `ItemInstance`. The main driver behind providing a feature like this is that it can be made to cause inheritance of properties and `Affixes` of the nested `ItemInstance` onto the `ItemInstance` it is socketed into. This is a powerful concept from a gameplay perspective as it can provide endless combination of Items and drive replayability.
+
+`ItemDefinition`s contain 2 main properties that describe significant functionality, they are the `StackSettings` and `SocketSettings`. An `ItemDefinition` can only enable one of these at a time. This enforces restrictions on the types of Items that can contain Sockets. Another major restriction on the socketing system is that `ItemDefinition`s that choose to enable the `SocketSettings` cannot be socketed into another `ItemInstance`. This forces the socketing depth to 1 and reduces complexity.
+
+![Affixes](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Socketing.JPG)
+
+Further control over how sockets behave on an Item are expressed by the `SocketableInto` and `MaximumSocketCount` properties on the `ItemDefinition`.
+
+>**SocketableInto**
+
+This property gives control to the `ItemDefinition` on what types of sockets it can be inserted into. The `ItemSocketDefinition` of a socket describes its `SocketType` that corresponds directly to this container.
+
+>**MaximumSocketCount**
+
+The `ItemSocketSettings` on the `ItemDefinition` describe all of the potential available sockets that an `ItemInstance` can ever have. The `MaximumSocketCount` property provides further control to the `ItemDefinition` for placing restrictions on the maximum amount of sockets generated during the Item Instancing Process.
+
+Determination of the sockets that are generated onto an `ItemInstance` are exposed by the `DetermineActiveSockets` function, which is available to override on the `UItemInstancingFunction` and `UItemSocketSettings` Objects. The Sample Project overrides the `ItemSocketSettings` version of the function to implement some functionality for socket selection based on the `QualityType` of the `ItemInstance` to help demonstrate this functionality.
 
 **[⬆ Back to Top](#table-of-contents)**
 
@@ -594,6 +631,19 @@ These Minimum and Maximum Item Affix Level property requirements are relatively 
 They are very simple in design at their current stage, effectively just an integer range that can represent anything you need.
 
 There are no special restrictions or considerations for their usage and are entirely dependant upon the User as to how they are interpreted and utilized.
+
+**[⬆ Back to Top](#table-of-contents)**
+
+<a name="affix-definition-aggregate-sockets"></a>
+### 5.3.1.7 Should Aggregate in Sockets
+
+Affixes can decide if they should appear in the Affix list of an Item when the `ItemInstance` they belong to is inside of a Socket of another `ItemInstance`.
+
+Currently this is manifested in the `UGenericItemizationStatics::GetItemAffixes` and `UItemInventoryComponent::GetItemAffixes` functions.
+
+These functions check for if the Affix has the `bShouldAggregateInSockets` property enabled on the `AffixDefinition`. If it doesn't, then it will not be returned as part of the list, when that Affix comes from a Socketed `ItemInstance`.
+
+![Affixes](https://fissureentertainment.com/devilsd/UnrealEngine/GenericItemization/Documentation/Socketed.JPG)
 
 **[⬆ Back to Top](#table-of-contents)**
 

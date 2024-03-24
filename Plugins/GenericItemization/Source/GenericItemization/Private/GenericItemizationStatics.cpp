@@ -10,6 +10,7 @@
 #include "StructView.h"
 #include "Engine/DataTable.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "ItemManagement/ItemSocketSettings.h"
 
 TOptional<TInstancedStruct<FItemDropTableType>> UGenericItemizationStatics::PickDropTableCollectionEntry(const TInstancedStruct<FItemDropTableCollectionRow>& DropTableCollectionEntry, const FInstancedStruct& ItemInstancingContext, bool bIncludeNoPick)
 {
@@ -393,6 +394,38 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromItemDefinition(const FD
 		MutableItemInstance->StackCount = FMath::Max(1, DesiredStackCount);
 	}
 
+	// =====================================================================================
+	// 6. Assign all of the Sockets to the ItemInstance that it has access to.
+	// Also activate those that need to be from the InstancingFunction and by extension the SocketSettings.
+	{
+		TArray<int32> SocketsToActivate;
+		bool bDeterminedSocketsToActivate = InstancingFunctionCDO->DetermineActiveSockets(NewItemInstance, ItemInstancingContext, SocketsToActivate);
+		if (bDeterminedSocketsToActivate)
+		{
+			// Add all of the Sockets that the ItemSocketSettings is saying the ItemInstance needs to have.
+			const UItemSocketSettings* const ItemSocketSettingsCDO = ItemInstanceItemDefinition.Get().SocketSettings.GetDefaultObject();
+			if (ItemSocketSettingsCDO)
+			{
+				const int32 MaximumSocketCount = ItemInstanceItemDefinition.Get().MaximumSocketCount;
+				int32 SocketCount = MaximumSocketCount >= 0 ? MaximumSocketCount : INT_MAX;
+				for (const TInstancedStruct<FItemSocketDefinition>& SocketDefintion : ItemSocketSettingsCDO->GetSocketDefinitions(SocketsToActivate))
+				{
+					if(SocketCount > 0)
+					{
+						FItemSocketInstance NewSocket;
+						NewSocket.SocketDefinitionHandle = SocketDefintion.Get().SocketDefinitionHandle;
+						NewSocket.bIsEmpty = true; // Empty by default.
+
+						TInstancedStruct<FItemSocketInstance> SocketInstance = TInstancedStruct<FItemSocketInstance>::Make(NewSocket);
+						MutableItemInstance->AddSocket(SocketInstance);
+					}
+
+					SocketCount--;
+				}
+			}
+		}
+	}
+
 	OutItemInstance = NewItemInstance;
 	return true;
 }
@@ -417,4 +450,46 @@ bool UGenericItemizationStatics::GenerateItemInstanceFromTemplate(const FInstanc
 	MutableItemInstance.ItemStream.Initialize(MutableItemInstance.ItemSeed);
 
 	return true;
+}
+
+bool UGenericItemizationStatics::GetItemAffixes(const TInstancedStruct<FItemInstance>& Item, TArray<TInstancedStruct<FAffixInstance>>& OutAffixes, bool bIncludeSocketedItems /*= true*/)
+{
+	const FItemInstance* ItemInstance = Item.GetPtr();
+	if (!ItemInstance)
+	{
+		return false;
+	}
+
+	OutAffixes.Empty(ItemInstance->Affixes.Num());
+	OutAffixes.Append(ItemInstance->Affixes);
+
+	if (bIncludeSocketedItems)
+	{
+		for (const TInstancedStruct<FItemSocketInstance>& Socket : ItemInstance->Sockets)
+		{
+			const FItemSocketInstance* SocketInstance = Socket.GetPtr();
+			if (SocketInstance && !SocketInstance->bIsEmpty)
+			{
+				const FItemInstance* SocketedItemInstance = SocketInstance->GetSocketedItem().GetPtr<const FItemInstance>();
+				if (SocketedItemInstance)
+				{
+					const TArray<TInstancedStruct<FAffixInstance>>& Affixes = SocketedItemInstance->Affixes;
+					for (const TInstancedStruct<FAffixInstance>& Affix : Affixes)
+					{
+						const FAffixInstance* AffixInstance = Affix.GetPtr();
+						if (AffixInstance)
+						{
+							const FAffixDefinition* AffixDefinition = AffixInstance->GetAffixDefinition().GetPtr();
+							if (AffixDefinition && AffixDefinition->bShouldAggregateInSockets)
+							{
+								OutAffixes.Add(Affix);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return OutAffixes.Num() > 0;
 }

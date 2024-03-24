@@ -3,6 +3,7 @@
 #include "GenericItemizationTypes.h"
 #include "GenericItemizationPickFunctions.h"
 #include "GenericItemizationInstancingFunctions.h"
+#include "GenericItemizationTags.h"
 
 FItemDropTableCollectionRow::FItemDropTableCollectionRow()
 {
@@ -19,6 +20,7 @@ FItemDefinitionCollection::FItemDefinitionCollection()
 FItemDefinition::FItemDefinition()
 {
 	InstancingFunction = UItemInstancingFunction::StaticClass();
+	SocketableInto.AddTag(GenericItemizationGameplayTags::SocketType);
 }
 
 bool FItemDefinition::IsSameItemDefinition(const FItemDefinition& Other) const

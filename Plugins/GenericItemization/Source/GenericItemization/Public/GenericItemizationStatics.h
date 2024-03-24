@@ -98,4 +98,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
 	static bool GenerateItemInstanceFromTemplate(const FInstancedStruct& ItemInstanceTemplate, FInstancedStruct& OutItemInstanceCopy);
 
+	/**
+	 * Returns all of the AffixInstances for the passed in ItemInstance. Optionally also aggregating all AffixInstances from any Socketed ItemInstances as well.
+	 *
+	 * @param Item						The ItemInstance to gather Affixes for.
+	 * @param OutAffixes				All of the Affix Instances that we found.
+	 * @param bIncludeSocketedItems		Whether or not we will gather Affixes from Items socketed into this one.
+	 * @return							True if we could find any Affixes.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
+	static bool GetItemAffixes(const TInstancedStruct<FItemInstance>& Item, TArray<TInstancedStruct<FAffixInstance>>& OutAffixes, bool bIncludeSocketedItems = true);
+
 };

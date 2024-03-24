@@ -8,6 +8,8 @@
 #include "Engine/NetSerialization.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "GenericItemizationTableTypes.h"
+#include "ItemManagement/ItemSocketSettings.h"
+#include "StructView.h"
 #include "GenericItemizationInstanceTypes.generated.h"
 
 /************************************************************************/
@@ -86,6 +88,48 @@ public:
 };
 
 /**
+ * Facilitates nesting an ItemInstance inside of another ItemInstance.
+ */
+USTRUCT(BlueprintType)
+struct FItemSocketInstance
+{
+    GENERATED_BODY()
+
+public:
+
+    friend struct FSetSocketInstanceSocketDefinition;
+    friend class UItemInventoryComponent;
+
+    FItemSocketInstance();
+
+    /* The unique id of this SocketInstance. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FGuid SocketId;
+
+    /* Whether or not this SocketInstance currently has a socketed Item. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bIsEmpty;
+
+    /* Handle of the actual SocketDefinition, this is serialized instead of the SocketDefinition itself. */
+    UPROPERTY()
+    FGuid SocketDefinitionHandle;
+
+    const TInstancedStruct<FItemSocketDefinition>& GetSocketDefinition() const { return SocketDefinition; }
+    const FConstStructView GetSocketedItem() const;
+
+protected:
+
+    /* The static data that describes this Socket. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, NotReplicated, meta = (AllowPrivateAccess))
+    TInstancedStruct<FItemSocketDefinition> SocketDefinition;
+
+    /* The ItemInstance that might be socketed into this SocketInstance. */
+    UPROPERTY(BlueprintReadOnly, meta = (BaseStruct = "/Script/GenericItemization.ItemInstance", AllowPrivateAccess))
+    FInstancedStruct SocketedItemInstance;
+
+};
+
+/**
  * An actual instance of an Item that was generated.
  */
 USTRUCT(BlueprintType)
@@ -133,6 +177,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     int32 StackCount;
 
+    /* All of the actual Sockets that this Item has that other ItemInstances could be placed into. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BaseStruct = "/Script/GenericItemization.ItemSocketInstance"))
+    TArray<TInstancedStruct<FItemSocketInstance>> Sockets;
+
     bool HasAnyAffixOfType(const FGameplayTag& AffixType) const;
 
     bool IsValid() const;
@@ -141,6 +189,15 @@ public:
 
     const TInstancedStruct<FItemDefinition>& GetItemDefinition() const { return ItemDefinition; }
     void SetItemDefinition(const FDataTableRowHandle& Handle);
+
+    /* Adds a new SocketInstance to this ItemInstance. */
+    void AddSocket(TInstancedStruct<FItemSocketInstance>& NewSocket);
+
+    /* Returns a view into the SocketInstance of the given SocketId if it exists on this ItemInstance. */
+    TOptional<const FConstStructView> GetSocket(FGuid SocketId) const;
+
+    /* Returns true if this ItemInstance has a SocketInstance with the given SocketId .*/
+    bool HasSocket(FGuid SocketId) const;
 
 protected:
 
@@ -161,6 +218,31 @@ struct TStructOpsTypeTraits<FItemInstance> : public TStructOpsTypeTraitsBase2<FI
     {
         WithNetSerializer = true,
     };
+};
+
+struct FSetSocketInstanceSocketDefinition
+{
+private:
+
+    friend struct FItemInstance;
+
+    FSetSocketInstanceSocketDefinition(const FItemDefinition* ItemDefinition, FItemSocketInstance* Socket)
+    {
+        if (ItemDefinition && !ItemDefinition->bStacksOverSockets && ItemDefinition->SocketSettings && Socket)
+        {
+            const UItemSocketSettings* const ItemSocketSettingsCDO = ItemDefinition->SocketSettings.GetDefaultObject();
+            if (ItemSocketSettingsCDO)
+            {
+                for (const TInstancedStruct<FItemSocketDefinition>& SocketDefinition : ItemSocketSettingsCDO->SocketDefinitions)
+                {
+                    if (SocketDefinition.Get().SocketDefinitionHandle == Socket->SocketDefinitionHandle)
+                    {
+                        Socket->SocketDefinition = SocketDefinition;
+                    }
+                }
+            }
+        }
+    }
 };
 
 USTRUCT()

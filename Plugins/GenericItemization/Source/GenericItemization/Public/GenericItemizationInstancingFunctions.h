@@ -46,6 +46,10 @@ public:
 	UFUNCTION(BlueprintNativeEvent)
 	bool CalculateStackCount(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, int32& OutStackCount) const;
 
+	/* Returns all of the SocketDefinitions on the ItemSocketSettings that will be set to Active on the ItemInstance when its generated. */
+	UFUNCTION(BlueprintNativeEvent)
+	bool DetermineActiveSockets(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, TArray<int32>& OutActiveSocketDefinitions) const;
+
 	/* Returns the Maximum Item Level. */
 	int32 GetMaximumItemLevel() const { return MaximumItemLevel; }
 

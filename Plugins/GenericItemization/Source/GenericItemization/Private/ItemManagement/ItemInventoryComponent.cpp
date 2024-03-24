@@ -216,7 +216,7 @@ bool UItemInventoryComponent::SplitItemStack(FGuid ItemToSplit, int32 SplitCount
 	// Then modify the original Item that we split from so that it has the remaining StackCount completing the split.
 	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
 		ItemToSplit, 
-		GenericItemizationGameplayTags::StackCountChange, 
+		GenericItemizationGameplayTags::ItemInstanceChange_StackCount, 
 		{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
 		[Remainder](FItemInstance* MutableItemInstance)
 		{
@@ -325,7 +325,7 @@ bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* It
 	{
 		ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
 			ItemToStackFrom,
-			GenericItemizationGameplayTags::StackCountChange, 
+			GenericItemizationGameplayTags::ItemInstanceChange_StackCount, 
 			{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
 			[StackRemainder](FItemInstance* MutableItemInstance)
 			{
@@ -344,7 +344,7 @@ bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* It
 
 	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
 		ItemToStackWith, 
-		GenericItemizationGameplayTags::StackCountChange, 
+		GenericItemizationGameplayTags::ItemInstanceChange_StackCount, 
 		{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
 		[ItemToStackFromStackCount, StackRemainder](FItemInstance* MutableItemInstance)
 		{
@@ -438,7 +438,7 @@ bool UItemInventoryComponent::StackItemFromItemDrop(AItemDrop* ItemToStackFromIt
 
 	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
 		ItemToStackWith, 
-		GenericItemizationGameplayTags::StackCountChange, 
+		GenericItemizationGameplayTags::ItemInstanceChange_StackCount, 
 		{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
 		[ItemToStackFromStackCount, StackRemainder](FItemInstance* MutableItemInstance)
 		{
@@ -448,6 +448,183 @@ bool UItemInventoryComponent::StackItemFromItemDrop(AItemDrop* ItemToStackFromIt
 	);
 
 	return true;
+}
+
+bool UItemInventoryComponent::CanSocketItem_Implementation(const FInstancedStruct& ItemToSocket, FGuid ItemToSocketInto, FGuid& OutSocketId)
+{
+	const FFastItemInstance* FastItemToSocketIntoPtr = ItemInstances.GetItemInstance(ItemToSocketInto);
+	if (!FastItemToSocketIntoPtr)
+	{
+		return false;
+	}
+
+	const FItemInstance* ItemToSocketIntoPtr = FastItemToSocketIntoPtr->ItemInstance.GetPtr<FItemInstance>();
+	if (!ItemToSocketIntoPtr)
+	{
+		return false;
+	}
+
+	for (const TInstancedStruct<FItemSocketInstance>& SocketInstance : ItemToSocketIntoPtr->Sockets)
+	{
+		if (SocketInstance.GetPtr() && CanSocketItemIntoSocket(ItemToSocket, ItemToSocketInto, SocketInstance.GetPtr()->SocketId))
+		{
+			OutSocketId = SocketInstance.GetPtr()->SocketId;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UItemInventoryComponent::CanSocketItemIntoSocket_Implementation(const FInstancedStruct& ItemToSocket, FGuid ItemToSocketInto, FGuid SocketId)
+{
+	const FItemInstance* ItemToSocketInstancePtr = ItemToSocket.GetPtr<FItemInstance>();
+	if (!ItemToSocketInstancePtr)
+	{
+		return false;
+	}
+
+	const FFastItemInstance* FastItemToSocketIntoPtr = ItemInstances.GetItemInstance(ItemToSocketInto);
+	if (!FastItemToSocketIntoPtr)
+	{
+		return false;
+	}
+
+	const FItemInstance* ItemToSocketIntoPtr = FastItemToSocketIntoPtr->ItemInstance.GetPtr<FItemInstance>();
+	if (!ItemToSocketIntoPtr)
+	{
+		return false;
+	}
+
+	// Check for any empty sockets. We cant socket at all if they are full already.
+	bool bHasEmptySocket = false;
+	for (const TInstancedStruct<FItemSocketInstance>& SocketInstance : ItemToSocketIntoPtr->Sockets)
+	{
+		if (SocketInstance.GetPtr() && SocketInstance.GetPtr()->SocketId == SocketId)
+		{
+			bHasEmptySocket = SocketInstance.GetPtr()->bIsEmpty;
+			break;
+		}
+	}
+
+	if (!bHasEmptySocket)
+	{
+		return false;
+	}
+
+	const FItemDefinition* const ItemToSocketIntoDefinitionPtr = ItemToSocketIntoPtr->GetItemDefinition().GetPtr();
+	if (!ItemToSocketIntoDefinitionPtr)
+	{
+		return false;
+	}
+
+	UItemSocketSettings* const ItemSocketSettingsCDO = ItemToSocketIntoDefinitionPtr->SocketSettings.GetDefaultObject();
+	if (!ItemSocketSettingsCDO)
+	{
+		return false;
+	}
+
+	return ItemSocketSettingsCDO->CanSocketInto(ItemToSocket, FastItemToSocketIntoPtr->ItemInstance, SocketId);
+}
+
+bool UItemInventoryComponent::HasAnyEmptyItemSockets(FGuid ItemToSocketInto)
+{
+	const FItemInstance* ItemToSocketIntoInstance = GetItem(ItemToSocketInto);
+	if (!ItemToSocketIntoInstance)
+	{
+		return false;
+	}
+
+	for (const TInstancedStruct<FItemSocketInstance>& SocketInstance : ItemToSocketIntoInstance->Sockets)
+	{
+		if (SocketInstance.GetPtr() && SocketInstance.GetPtr()->bIsEmpty)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UItemInventoryComponent::SocketItem(FInstancedStruct& ItemToSocket, FGuid ItemToSocketInto, FGuid SocketId)
+{
+	if (!HasAuthority())
+	{
+		return false;
+	}
+
+	if (!CanSocketItemIntoSocket(ItemToSocket, ItemToSocketInto, SocketId))
+	{
+		return false;
+	}
+
+	bool bResult = false;
+	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
+		ItemToSocketInto,
+		GenericItemizationGameplayTags::ItemInstanceChange_SocketChange_Socketed,
+		{ GET_MEMBER_NAME_CHECKED(FItemInstance, Sockets) },
+		[&ItemToSocket, SocketId, &bResult](FItemInstance* MutableItemInstance)
+		{
+			for (TInstancedStruct<FItemSocketInstance>& Socket : MutableItemInstance->Sockets)
+			{
+				FItemSocketInstance* MutableSocketInstance = Socket.GetMutablePtr();
+				if (MutableSocketInstance && MutableSocketInstance->SocketId == SocketId)
+				{
+					MutableSocketInstance->SocketedItemInstance = ItemToSocket;
+					MutableSocketInstance->bIsEmpty = false;
+					bResult = true;
+					return;
+				}
+			}
+		}
+	);
+
+	return bResult;
+}
+
+bool UItemInventoryComponent::UnsocketItem(FGuid ItemToUnsocketFrom, FGuid SocketId, FInstancedStruct& OutUnsocketedItem)
+{
+	if (!HasAuthority())
+	{
+		return false;
+	}
+
+	bool bResult = false;
+	ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
+		ItemToUnsocketFrom,
+		GenericItemizationGameplayTags::ItemInstanceChange_SocketChange_Unsocketed,
+		{ GET_MEMBER_NAME_CHECKED(FItemInstance, Sockets) },
+		[&OutUnsocketedItem, SocketId, &bResult](FItemInstance* MutableItemInstance)
+		{
+			for (TInstancedStruct<FItemSocketInstance>& Socket : MutableItemInstance->Sockets)
+			{
+				FItemSocketInstance* MutableSocketInstance = Socket.GetMutablePtr();
+				if (MutableSocketInstance && MutableSocketInstance->SocketId == SocketId)
+				{
+					OutUnsocketedItem = MutableSocketInstance->SocketedItemInstance;
+					MutableSocketInstance->bIsEmpty = true;
+					bResult = true;
+					return;
+				}
+			}
+		}
+	);
+
+	return bResult;
+}
+
+bool UItemInventoryComponent::GetItemAffixes(const FGuid& ItemId, TArray<TInstancedStruct<FAffixInstance>>& OutAffixes, bool bIncludeSocketedItems /*= true*/)
+{
+	bool bFoundItem = false;
+	const FInstancedStruct Item = GetItem(ItemId, bFoundItem);
+	if (bFoundItem)
+	{
+		TInstancedStruct<FItemInstance> ItemInstance;
+		ItemInstance.InitializeAsScriptStruct(Item.GetScriptStruct(), Item.GetMemory());
+		return UGenericItemizationStatics::GetItemAffixes(ItemInstance, OutAffixes, bIncludeSocketedItems);
+	}
+
+	return false;
 }
 
 TArray<FInstancedStruct> UItemInventoryComponent::GetItems()
@@ -467,6 +644,17 @@ FInstancedStruct UItemInventoryComponent::GetItem(FGuid ItemId, bool& bSuccessfu
 	const FFastItemInstance* ItemInstance = ItemInstances.GetItemInstance(ItemId);
 	bSuccessful = ItemInstance != nullptr;
 	return bSuccessful ? ItemInstance->ItemInstance : FInstancedStruct();
+}
+
+const FItemInstance* UItemInventoryComponent::GetItem(const FGuid& ItemId) const
+{
+	const FFastItemInstance* ItemInstance = ItemInstances.GetItemInstance(ItemId);
+	if (!ItemInstance)
+	{
+		return nullptr;
+	}
+
+	return ItemInstance->ItemInstance.GetPtr<FItemInstance>();
 }
 
 FInstancedStruct UItemInventoryComponent::GetItemContextData(FGuid ItemId, bool& bSuccessful)
@@ -512,6 +700,16 @@ void UItemInventoryComponent::K2_OnItemStackCountChanged_Implementation(const FI
 	// Left empty intentionally to be overridden.
 }
 
+void UItemInventoryComponent::K2_OnItemSocketed_Implementation(const FInstancedStruct& Item, const FInstancedStruct& UserContextData, FGuid SocketId)
+{
+	// Left empty intentionally to be overridden.
+}
+
+void UItemInventoryComponent::K2_OnItemUnsocketed_Implementation(const FInstancedStruct& Item, const FInstancedStruct& UserContextData, FGuid SocketId)
+{
+	// Left empty intentionally to be overridden.
+}
+
 void UItemInventoryComponent::OnItemInstancePropertyValueChanged(const FFastItemInstance& FastItemInstance, const FGameplayTag& ChangeDescriptor, int32 ChangeId, const FName& PropertyName, const void* OldPropertyValue, const void* NewPropertyValue)
 {
 	// Left empty intentionally to be overridden.
@@ -549,11 +747,85 @@ void UItemInventoryComponent::OnItemInstancePropertyValueChanged_Internal(const 
 	OnItemInstancePropertyValueChanged(FastItemInstance, ChangeDescriptor, ChangeId, PropertyName, OldPropertyValue, NewPropertyValue);
 	OnItemPropertyValueChangedDelegate.Broadcast(this, FastItemInstance, ChangeDescriptor, ChangeId, PropertyName, OldPropertyValue, NewPropertyValue);
 
-	if (ChangeDescriptor == GenericItemizationGameplayTags::StackCountChange && PropertyName == GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount))
+	if (ChangeDescriptor == GenericItemizationGameplayTags::ItemInstanceChange_StackCount && PropertyName == GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount))
 	{
 		const int32* OldStackCount = static_cast<const int32*>(OldPropertyValue);
 		const int32* NewStackCount = static_cast<const int32*>(NewPropertyValue);
 		OnItemStackCountChangedDelegate.Broadcast(this, FastItemInstance.ItemInstance, FastItemInstance.UserContextData, *OldStackCount, *NewStackCount);
 		K2_OnItemStackCountChanged(FastItemInstance.ItemInstance, FastItemInstance.UserContextData, *OldStackCount, *NewStackCount);
+	}
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(FItemInstance, Sockets))
+	{
+		const TArray<TInstancedStruct<FItemSocketInstance>>* OldSockets = static_cast<const TArray<TInstancedStruct<FItemSocketInstance>>*>(OldPropertyValue);
+		const TArray<TInstancedStruct<FItemSocketInstance>>* NewSockets = static_cast<const TArray<TInstancedStruct<FItemSocketInstance>>*>(NewPropertyValue);
+
+		FGuid ChangedSocketId;
+		bool bFoundChangedSocketId = false;
+		for (const TInstancedStruct<FItemSocketInstance>& OldSocket : *OldSockets)
+		{
+			if (bFoundChangedSocketId)
+			{
+				break;
+			}
+
+			for (const TInstancedStruct<FItemSocketInstance>& NewSocket : *NewSockets)
+			{
+				const FItemSocketInstance* const OldSocketInstancePtr = OldSocket.GetPtr();
+				const FItemSocketInstance* const NewSocketInstancePtr = NewSocket.GetPtr();
+				if (OldSocketInstancePtr && NewSocketInstancePtr && OldSocketInstancePtr->SocketId == NewSocketInstancePtr->SocketId)
+				{
+					// Check if the bIsEmpty flag has changed. If it has then we can skip doing a more expensive compare.
+					bool bEmptyHasChanged = false;
+					if (OldSocketInstancePtr->bIsEmpty != NewSocketInstancePtr->bIsEmpty)
+					{
+						ChangedSocketId = NewSocketInstancePtr->SocketId;
+						bFoundChangedSocketId = true;
+						break;
+					}
+
+					// Since we couldn't determine a change with the bIsEmpty flag we need to check if the ItemInstance itself was changed.
+					const FItemInstance* const OldSocketItemInstancePtr = OldSocketInstancePtr->SocketedItemInstance.GetPtr<FItemInstance>();
+					const FItemInstance* const NewSocketItemInstancePtr = NewSocketInstancePtr->SocketedItemInstance.GetPtr<FItemInstance>();
+					if (OldSocketInstancePtr && !NewSocketItemInstancePtr)
+					{
+						ChangedSocketId = OldSocketInstancePtr->SocketId;
+						bFoundChangedSocketId = true;
+						break;
+					}
+
+					if (!OldSocketInstancePtr && NewSocketItemInstancePtr)
+					{
+						ChangedSocketId = NewSocketInstancePtr->SocketId;
+						bFoundChangedSocketId = true;
+						break;
+					}
+
+					if (OldSocketItemInstancePtr && NewSocketItemInstancePtr)
+					{
+						if(OldSocketItemInstancePtr->ItemId != NewSocketItemInstancePtr->ItemId)
+						{
+							ChangedSocketId = NewSocketInstancePtr->SocketId;
+							bFoundChangedSocketId = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if(bFoundChangedSocketId)
+		{
+			if (ChangeDescriptor == GenericItemizationGameplayTags::ItemInstanceChange_SocketChange_Socketed)
+			{
+				OnItemSocketedDelegate.Broadcast(this, FastItemInstance.ItemInstance, FastItemInstance.UserContextData, ChangedSocketId);
+				K2_OnItemSocketed(FastItemInstance.ItemInstance, FastItemInstance.UserContextData, ChangedSocketId);
+			}
+			else if (ChangeDescriptor == GenericItemizationGameplayTags::ItemInstanceChange_SocketChange_Unsocketed)
+			{
+				OnItemUnsocketedDelegate.Broadcast(this, FastItemInstance.ItemInstance, FastItemInstance.UserContextData, ChangedSocketId);
+				K2_OnItemUnsocketed(FastItemInstance.ItemInstance, FastItemInstance.UserContextData, ChangedSocketId);
+			}
+		}
 	}
 }

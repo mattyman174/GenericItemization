@@ -13,6 +13,7 @@ class UItemDefinitionCollectionPickFunction;
 class UItemDropTableCollectionPickFunction;
 class UItemInstancingFunction;
 class UItemStackSettings;
+class UItemSocketSettings;
 
 /************************************************************************/
 /* Items
@@ -307,13 +308,29 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (RequiredAssetDataTags = "RowStructure=/Script/GenericItemization.AffixDefinitionEntry"))
     TObjectPtr<UDataTable> AffixPool;
 
+    /* Whether or not we are using StackSettings or SocketSettings, we can't use both. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (InlineEditConditionToggle))
+    bool bStacksOverSockets = true;
+
+    /* Describes how ItemInstances of this ItemDefinition can be stacked. Cannot use Sockets if using Stacks. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (EditCondition = "bStacksOverSockets"))
+    TSubclassOf<UItemStackSettings> StackSettings;
+
+    /* Describes the Sockets that are available to ItemInstances of this ItemDefinition. Cannot use Stacks if using Sockets. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (EditCondition = "!bStacksOverSockets"))
+    TSubclassOf<UItemSocketSettings> SocketSettings;
+
+    /* The Maximum number of Sockets this ItemDefinition allows ItemInstance of it to have. A value of -1 indicates no maximum. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (UIMin = "-1", ClampMin = "-1", EditCondition = "!bStacksOverSockets"))
+    int32 MaximumSocketCount = -1;
+
+    /* The types of Sockets that ItemInstances of this ItemDefinition can be socketed into. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Categories = "Itemization.SocketType", EditCondition = "bStacksOverSockets"))
+    FGameplayTagContainer SocketableInto;
+
     /* Custom Data that can contain whatever you like. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TArray<FItemDefinitionUserData> CustomUserData;
-
-    /* Describes how ItemInstances of this ItemDefinition can be stacked. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    TSubclassOf<UItemStackSettings> StackSettings;
 
     /* Returns true if Other is the same as this ItemDefinition. */
     bool IsSameItemDefinition(const FItemDefinition& Other) const;
@@ -396,6 +413,10 @@ public:
     /* Can this Affix actually appear on Items. If this is false, it will be ignored during the Item Instancing Process. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     bool bSpawnable = true;
+
+    /* Will this Affix appear in the aggregated list of Affixes if the ItemInstance it belongs to is inside of a Socket. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    bool bShouldAggregateInSockets = true;
 
     /* The Chance that this Affix is chosen in the Item Instancing Process. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (UIMin = "0", ClampMin = "0"))

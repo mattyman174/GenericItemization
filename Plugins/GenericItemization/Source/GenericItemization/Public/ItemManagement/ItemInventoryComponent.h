@@ -14,6 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemTakenS
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemChangedSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemRemovedSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FItemInventoryComponentItemChangedStackCountSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData, int32, OldStackCount, int32, NewStackCount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FItemInventoryComponentItemChangedSocketChangeSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData, FGuid, SocketId);
+
 DECLARE_MULTICAST_DELEGATE_SevenParams(FItemInventoryComponentItemPropertyValueChangedSignature, UItemInventoryComponent* /*ItemInventoryComponent*/, const FFastItemInstance& /*FastItemInstance*/, const FGameplayTag& /*ChangeDescriptor*/, int32 /*ChangeId*/, const FName& /*PropertyName*/, const void* /*OldPropertyValue*/, const void* /*NewPropertyValue*/);
 
 /**
@@ -49,6 +51,14 @@ public:
 	/* Called when an ItemInstance in the Inventory had its StackCount changed. */
 	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Stack Count Changed"))
 	FItemInventoryComponentItemChangedStackCountSignature OnItemStackCountChangedDelegate;
+
+	/* Called when an ItemInstance in the Inventory had another ItemInstance socketed into it. */
+	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Socketed"))
+	FItemInventoryComponentItemChangedSocketChangeSignature OnItemSocketedDelegate;
+
+	/* Called when an ItemInstance in the Inventory had an ItemInstance unsocketed from it. */
+	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "On Item Unsocketed"))
+	FItemInventoryComponentItemChangedSocketChangeSignature OnItemUnsocketedDelegate;
 
 	/* Called when an ItemInstance in the Inventory had a property value changed. */
 	FItemInventoryComponentItemPropertyValueChangedSignature OnItemPropertyValueChangedDelegate;
@@ -161,6 +171,65 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
 	virtual bool StackItemFromItemDrop(AItemDrop* ItemToStackFromItemDrop, FGuid ItemToStackWith, bool& bOutItemToStackFromWasExpunged, bool bDestroyItemDrop = true);
 
+	/**
+	 * Checks if ItemToSocket can be socketed into any Sockets on ItemToSocketInto. Returns the first Socket that will accept ItemToSocket. 
+	 * 
+	 * @param ItemToSocket			The ItemInstance that we are trying to socket into ItemToSocketInto.
+	 * @param ItemToSocketInto		The ItemInstance that we are trying to socket ItemToSocket into.
+	 * @param OutSocketId			The SocketId of the first Socket that will accept the ItemToSocket.
+	 * @return						True if we can socket the Item.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Generic Itemization")
+	bool CanSocketItem(const FInstancedStruct& ItemToSocket, FGuid ItemToSocketInto, FGuid& OutSocketId);
+
+	/**
+	 * Checks if the SocketId on the ItemToSocketInto will accept the ItemToSocket.
+	 *
+	 * @param ItemToSocket			The ItemInstance that we are trying to socket into ItemToSocketInto.
+	 * @param ItemToSocketInto		The ItemInstance that we are trying to socket ItemToSocket into.
+	 * @param SocketId				The SocketId of the Socket that we are trying to socket into.
+	 * @return						True if we can socket the Item.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Generic Itemization")
+	bool CanSocketItemIntoSocket(const FInstancedStruct& ItemToSocket, FGuid ItemToSocketInto, FGuid SocketId);
+
+	/* Returns true if any sockets on the ItemToSocketInto are empty. */
+	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
+	bool HasAnyEmptyItemSockets(FGuid ItemToSocketInto);
+
+	/**
+	 * Sockets the ItemToSocket into the ItemToSocketInto's socket at SocketId. 
+	 * 
+	 * @param ItemToSocket			The ItemInstance that we are trying to socket into ItemToSocketInto.
+	 * @param ItemToSocketInto		The ItemInstance that we are trying to socket ItemToSocket into.
+	 * @param SocketId				The SocketId of the Socket that we are trying to socket into.
+	 * @return						True if the socketing operation was successful.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
+	virtual bool SocketItem(UPARAM(Ref) FInstancedStruct& ItemToSocket, FGuid ItemToSocketInto, FGuid SocketId);
+
+	/** 
+	 * Unsockets an Item from the SocketId on the ItemToUnsocketFrom.
+	 * 
+	 * @param ItemToUnsocketFrom	The ItemInstance that we are trying to unsocket a socketed ItemInstance from.
+	 * @param SocketId				The SocketId of the Socket that we are trying to unsocket from.
+	 * @param OutUnsocketedItem		The ItemInstance that was removed from the socket if successful.
+	 * @return						True if the unsocketing operation was successful.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Generic Itemization")
+	virtual bool UnsocketItem(FGuid ItemToUnsocketFrom, FGuid SocketId, FInstancedStruct& OutUnsocketedItem);
+
+	/**
+	 * Returns all of the AffixInstances for the passed in ItemInstance. Optionally also aggregating all AffixInstances from any Socketed ItemInstances as well.
+	 *
+	 * @param Item						The ItemInstance to gather Affixes for.
+	 * @param OutAffixes				All of the Affix Instances that we found.
+	 * @param bIncludeSocketedItems		Whether or not we will gather Affixes from Items socketed into this one.
+	 * @return							True if we could find any Affixes.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
+	bool GetItemAffixes(const FGuid& Item, TArray<TInstancedStruct<FAffixInstance>>& OutAffixes, bool bIncludeSocketedItems = true);
+
 	/* Returns a copy of all of the Items this Inventory currently contains. */
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
 	TArray<FInstancedStruct> GetItems();
@@ -172,6 +241,7 @@ public:
 	/* Gets a copy of the ItemInstance with the given ItemId. */
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
 	FInstancedStruct GetItem(FGuid ItemId, bool& bSuccessful);
+	const FItemInstance* GetItem(const FGuid& ItemId) const;
 
 	/* Gets a copy of the ItemInstances UserContextData with the given ItemId. */
 	UFUNCTION(BlueprintCallable, Category = "Generic Itemization")
@@ -217,6 +287,16 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Item Stack Count Changed"))
 	void K2_OnItemStackCountChanged(const FInstancedStruct& Item, const FInstancedStruct& UserContextData, int32 OldStackCount, int32 NewStackCount);
 
+	/* Called when an ItemInstance in the Inventory had another ItemInstance socketed into it. */
+	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Item Socketed"))
+	void K2_OnItemSocketed(const FInstancedStruct& Item, const FInstancedStruct& UserContextData, FGuid SocketId);
+
+	/* Called when an ItemInstance in the Inventory had an ItemInstance unsocketed from it. */
+	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Item Socketed"))
+	void K2_OnItemUnsocketed(const FInstancedStruct& Item, const FInstancedStruct& UserContextData, FGuid SocketId);
+
+private:
+
 	/**
 	 * Called when an individual property on an Item has been changed.
 	 *
@@ -228,8 +308,6 @@ protected:
 	 * @param NewPropertyValue		Pointer to the New value of the property.
 	 */
 	virtual void OnItemInstancePropertyValueChanged(const FFastItemInstance& FastItemInstance, const FGameplayTag& ChangeDescriptor, int32 ChangeId, const FName& PropertyName, const void* OldPropertyValue, const void* NewPropertyValue);
-
-private:
 
 	/* Called natively by the FFastItemInstancesContainer to notify the Inventory of an Item being Added. */
 	void OnAddedItemInstance(const FFastItemInstance& FastItemInstance);

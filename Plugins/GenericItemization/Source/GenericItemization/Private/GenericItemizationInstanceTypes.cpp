@@ -37,6 +37,17 @@ void FAffixInstance::SetAffixDefinition(const FDataTableRowHandle& Handle)
 /* Items
 /************************************************************************/
 
+FItemSocketInstance::FItemSocketInstance()
+{
+	SocketId = FGuid::NewGuid();
+	bIsEmpty = false;
+}
+
+const FConstStructView FItemSocketInstance::GetSocketedItem() const
+{
+	return FConstStructView(SocketedItemInstance);
+}
+
 FItemInstance::FItemInstance()
 {
 	ItemId = FGuid::NewGuid();
@@ -110,11 +121,38 @@ bool FItemInstance::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOu
 	SafeNetSerializeTArray_WithNetSerialize<31>(Ar, ReplicatedAffixes, Map); // @NOTE: This means we have a practical maximum of 32 Affixes per ItemInstance. Should we expose this somehow?
 	if (Ar.IsLoading())
 	{
+		// We need to empty the actual array as we are effectively rebuilding it.
+		Affixes.Empty(ReplicatedAffixes.Num());
 		for (const FInstancedStruct& ReplicatedAffix : ReplicatedAffixes)
 		{
 			TInstancedStruct<FAffixInstance> Affix;
 			Affix.InitializeAsScriptStruct(ReplicatedAffix.GetScriptStruct(), ReplicatedAffix.GetMemory());
 			Affixes.Add(Affix);
+		}
+	}
+
+	// Ar << Sockets;
+	TArray<FInstancedStruct> ReplicatedSockets;
+	if (Ar.IsSaving())
+	{
+		for (const TInstancedStruct<FItemSocketInstance>& Socket : Sockets)
+		{
+			FInstancedStruct ReplicatedSocket;
+			ReplicatedSocket.InitializeAs(Socket.GetScriptStruct(), Socket.GetMemory());
+			ReplicatedSockets.Add(ReplicatedSocket);
+		}
+	}
+	SafeNetSerializeTArray_WithNetSerialize<31>(Ar, ReplicatedSockets, Map); // @NOTE: This means we have a practical maximum of 32 Sockets per ItemInstance. Should we expose this somehow?
+	if (Ar.IsLoading())
+	{
+		// We need to empty the actual array as we are effectively rebuilding it.
+		Sockets.Empty(ReplicatedSockets.Num());
+		for (const FInstancedStruct& ReplicatedSocket : ReplicatedSockets)
+		{
+			TInstancedStruct<FItemSocketInstance> Socket;
+			Socket.InitializeAsScriptStruct(ReplicatedSocket.GetScriptStruct(), ReplicatedSocket.GetMemory());
+
+			AddSocket(Socket);
 		}
 	}
 
@@ -133,6 +171,40 @@ void FItemInstance::SetItemDefinition(const FDataTableRowHandle& Handle)
 			ItemDefinition = ItemDefinitionEntry->ItemDefinition;
 		}
 	}
+}
+
+void FItemInstance::AddSocket(TInstancedStruct<FItemSocketInstance>& NewSocket)
+{
+	// Let the Socket know what its definition is.
+	FSetSocketInstanceSocketDefinition(ItemDefinition.GetPtr(), NewSocket.GetMutablePtr());
+	Sockets.Add(NewSocket);
+}
+
+TOptional<const FConstStructView> FItemInstance::GetSocket(FGuid SocketId) const
+{
+	TOptional<const FConstStructView> Result;
+	for (const TInstancedStruct<FItemSocketInstance>& Socket : Sockets)
+	{
+		if (Socket.Get().SocketId == SocketId)
+		{
+			Result.Emplace(FConstStructView(Socket.GetScriptStruct(), Socket.GetMemory()));
+		}
+	}
+
+	return Result;
+}
+
+bool FItemInstance::HasSocket(FGuid SocketId) const
+{
+	for (const TInstancedStruct<FItemSocketInstance>& Socket : Sockets)
+	{
+		if (Socket.Get().SocketId == SocketId)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void FFastItemInstance::Initialize(FInstancedStruct& InItemInstance, FInstancedStruct& InUserContextData)

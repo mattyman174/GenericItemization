@@ -6,6 +6,7 @@
 #include "GenericItemizationInstanceTypes.h"
 #include "GenericItemizationPickFunctions.h"
 #include "GameplayTagsManager.h"
+#include "ItemManagement/ItemSocketSettings.h"
 
 UItemInstancingFunction::UItemInstancingFunction()
 {
@@ -201,6 +202,40 @@ bool UItemInstancingFunction::CalculateStackCount_Implementation(const FInstance
 	// The default value for StackCount will remain at 1. It should always be >= 1.
 	OutStackCount = 1;
 	return true;
+}
+
+bool UItemInstancingFunction::DetermineActiveSockets_Implementation(const FInstancedStruct& ItemInstance, const FInstancedStruct& ItemInstancingContext, TArray<int32>& OutActiveSocketDefinitions) const
+{
+	const FItemInstance* ItemInstancePtr = ItemInstance.GetPtr<FItemInstance>();
+	if (!ItemInstancePtr)
+	{
+		return false;
+	}
+
+	const TInstancedStruct<FItemDefinition>& ItemDefinitionInstance = ItemInstancePtr->GetItemDefinition();
+	if (!ItemDefinitionInstance.IsValid())
+	{
+		return false;
+	}
+
+	const FItemDefinition& ItemDefinition = ItemDefinitionInstance.Get();
+	if (ItemDefinition.bStacksOverSockets)
+	{
+		// If we are using Stacking functionality instead of Socketing functionality, then we can exit early with no default Active Sockets.
+		OutActiveSocketDefinitions.Empty();
+		return true;
+	}
+
+	const UItemSocketSettings* const ItemSocketSettingsCDO = ItemDefinition.SocketSettings.GetDefaultObject();
+	if (!ItemSocketSettingsCDO)
+	{
+		// This isn't necessarily a failure case.
+		OutActiveSocketDefinitions.Empty();
+		return true;
+	}
+
+	// By default we let the ItemSocketSettings decide what to do.
+	return ItemSocketSettingsCDO->DetermineActiveSockets(ItemInstance, ItemInstancingContext, OutActiveSocketDefinitions);
 }
 
 bool UItemInstancingContextFunction::BuildItemInstancingContext_Implementation(const UItemDropperComponent* ItemDropperComponent, const FInstancedStruct& UserContextData, FInstancedStruct& OutItemInstancingContext)
