@@ -180,7 +180,7 @@ void FItemInstance::AddSocket(TInstancedStruct<FItemSocketInstance>& NewSocket)
 	Sockets.Add(NewSocket);
 }
 
-TOptional<const FConstStructView> FItemInstance::GetSocket(FGuid SocketId) const
+TOptional<const FConstStructView> FItemInstance::GetSocket(const FGuid SocketId) const
 {
 	TOptional<const FConstStructView> Result;
 	for (const TInstancedStruct<FItemSocketInstance>& Socket : Sockets)
@@ -194,7 +194,7 @@ TOptional<const FConstStructView> FItemInstance::GetSocket(FGuid SocketId) const
 	return Result;
 }
 
-bool FItemInstance::HasSocket(FGuid SocketId) const
+bool FItemInstance::HasSocket(const FGuid SocketId) const
 {
 	for (const TInstancedStruct<FItemSocketInstance>& Socket : Sockets)
 	{
@@ -207,7 +207,7 @@ bool FItemInstance::HasSocket(FGuid SocketId) const
 	return false;
 }
 
-void FFastItemInstance::Initialize(FInstancedStruct& InItemInstance, FInstancedStruct& InUserContextData)
+void FFastItemInstance::Initialize(const FInstancedStruct& InItemInstance, const FInstancedStruct& InUserContextData)
 {
 	ItemInstance = InItemInstance;
 	UserContextData = InUserContextData;
@@ -295,7 +295,7 @@ void FFastItemInstancesContainer::AddItemInstance(FInstancedStruct& ItemInstance
 	}
 }
 
-void FFastItemInstancesContainer::OnItemInstanceChanged(FFastItemInstance& ChangedItemInstance)
+void FFastItemInstancesContainer::OnItemInstanceChanged(FFastItemInstance& ChangedItemInstance) const
 {
 	DiffItemInstanceChanges(ChangedItemInstance);
 
@@ -309,12 +309,12 @@ void FFastItemInstancesContainer::OnItemInstanceChanged(FFastItemInstance& Chang
 	ChangedItemInstance.PreviousChangesId = ChangedItemInstance.RecentChangesId;
 }
 
-bool FFastItemInstancesContainer::RemoveItemInstance(const FGuid& ItemInstance)
+bool FFastItemInstancesContainer::RemoveItemInstance(const FGuid& Item)
 {
 	for (int32 i = ItemInstances.Num() - 1; i >= 0; --i)
 	{
 		const FItemInstance* ItemInstancePtr = ItemInstances[i].ItemInstance.GetPtr<FItemInstance>();
-		if (ItemInstancePtr && ItemInstancePtr->IsValid() && ItemInstancePtr->ItemId == ItemInstance)
+		if (ItemInstancePtr && ItemInstancePtr->IsValid() && ItemInstancePtr->ItemId == Item)
 		{
 			FFastItemInstance OldItemInstance = ItemInstances[i];
 			ItemInstances.RemoveAt(i);
@@ -364,13 +364,13 @@ int32 FFastItemInstancesContainer::GetNum() const
 	return ItemInstances.Num();
 }
 
-void FFastItemInstancesContainer::DiffItemInstanceChanges(FFastItemInstance& ChangedItemInstance)
+void FFastItemInstancesContainer::DiffItemInstanceChanges(const FFastItemInstance& ChangedItemInstance) const
 {
 	if(IsValid(Owner))
 	{
 		for (const FItemInstanceChange& RecentChange : ChangedItemInstance.RecentChangesBuffer)
 		{
-			if (RecentChange.ChangeId >= ChangedItemInstance.PreviousChangesId)
+			if (RecentChange.ChangeId > ChangedItemInstance.PreviousChangesId)
 			{
 				for (const FName& PropertyName : RecentChange.ChangedProperties)
 				{

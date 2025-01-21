@@ -194,10 +194,10 @@ public:
     void AddSocket(TInstancedStruct<FItemSocketInstance>& NewSocket);
 
     /* Returns a view into the SocketInstance of the given SocketId if it exists on this ItemInstance. */
-    TOptional<const FConstStructView> GetSocket(FGuid SocketId) const;
+    TOptional<const FConstStructView> GetSocket(const FGuid SocketId) const;
 
     /* Returns true if this ItemInstance has a SocketInstance with the given SocketId .*/
-    bool HasSocket(FGuid SocketId) const;
+    bool HasSocket(const FGuid SocketId) const;
 
 protected:
 
@@ -258,7 +258,7 @@ public:
 
     /* Id of this Change. This helps the Client know how far behind it is. */
     UPROPERTY()
-    int32 ChangeId;
+    int32 ChangeId = 0;
 
     /* Names of all of the properties that changed. */
     UPROPERTY()
@@ -284,7 +284,7 @@ public:
     friend struct FFastItemInstancesContainer;
     friend class UItemInventoryComponent;
 
-    void Initialize(FInstancedStruct& InItemInstance, FInstancedStruct& InUserContextData);
+    void Initialize(const FInstancedStruct& InItemInstance, const FInstancedStruct& InUserContextData);
 
     //~ Begin of FFastArraySerializerItem
     void PostReplicatedAdd(const struct FFastItemInstancesContainer& InArray);
@@ -308,13 +308,13 @@ private:
 
     /* Id of the current ChangeList. */
     UPROPERTY()
-    int32 RecentChangesId;
+    int32 RecentChangesId = 0;
 
     /* A copy of the ItemInstance which we use as a lookup for the previous values of changed properties that come in from the RecentChangesBuffer. */
     FInstancedStruct PreReplicatedChangeItemInstance;
 
     /* Id of the ChangeList we have executed up to. */
-    int32 PreviousChangesId;
+    int32 PreviousChangesId = 0;
 
 };
 
@@ -337,7 +337,8 @@ public:
     friend class UItemInventoryComponent;
 
     FFastItemInstancesContainer() : 
-        Owner(nullptr)
+        Owner(nullptr),
+        bOwnerIsNetAuthority(false)
     { }
 
     //~ Begin of FFastArraySerializer
@@ -406,10 +407,10 @@ private:
     bool bOwnerIsNetAuthority;
 
     /* Called when an ItemInstance was changed. Calls, DiffItemInstanceChanges and updates any cached state for the changed ItemInstance. */
-    void OnItemInstanceChanged(FFastItemInstance& ChangedItemInstance);
+    void OnItemInstanceChanged(FFastItemInstance& ChangedItemInstance) const;
 
     /* Diffs the RecentChangesBuffer for the ItemInstance and emits any actual changes that took place to the ItemInventoryComponent. */
-    void DiffItemInstanceChanges(FFastItemInstance& ChangedItemInstance);
+    void DiffItemInstanceChanges(const FFastItemInstance& ChangedItemInstance) const;
 
     /**
      * DO NOT USE DIRECTLY
