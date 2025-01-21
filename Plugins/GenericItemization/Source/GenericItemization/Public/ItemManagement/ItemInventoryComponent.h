@@ -8,6 +8,7 @@
 #include "GenericItemizationInstanceTypes.h"
 #include "ItemInventoryComponent.generated.h"
 
+class UItemInstancer;
 class AItemDrop;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FItemInventoryComponentItemTakenSignature, UItemInventoryComponent*, ItemInventoryComponent, const FInstancedStruct&, Item, const FInstancedStruct&, UserContextData);
@@ -257,8 +258,12 @@ public:
 protected:
 
 	/* The type of Item Drop Actor we will use to represent the Items we will drop within the world. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Generic Itemization")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	TSubclassOf<AItemDrop> ItemDropClass;
+
+	/* The Instancer that generates the Items this Inventory might have. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Instanced, Category = "Settings")
+	UItemInstancer* ItemInstancer;
 
 	/* Container for all of the ItemInstances that this Inventory is managing. */
 	UPROPERTY(Replicated)

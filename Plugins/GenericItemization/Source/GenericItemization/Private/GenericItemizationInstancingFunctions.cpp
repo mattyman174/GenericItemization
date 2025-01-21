@@ -238,7 +238,7 @@ bool UItemInstancingFunction::DetermineActiveSockets_Implementation(const FInsta
 	return ItemSocketSettingsCDO->DetermineActiveSockets(ItemInstance, ItemInstancingContext, OutActiveSocketDefinitions);
 }
 
-bool UItemInstancingContextFunction::BuildItemInstancingContext_Implementation(const UItemDropperComponent* ItemDropperComponent, const FInstancedStruct& UserContextData, FInstancedStruct& OutItemInstancingContext)
+bool UItemInstancingContextFunction::BuildItemInstancingContext_Implementation(const UItemInstancer* ItemInstancer, const FInstancedStruct& UserContextData, FInstancedStruct& OutItemInstancingContext)
 {
 	// Override to provide your own context. 
 	// You may want to pass data important to you through the UserContextData and embed it in the Item Instancing Context.

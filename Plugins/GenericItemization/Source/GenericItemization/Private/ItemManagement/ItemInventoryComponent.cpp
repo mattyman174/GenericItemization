@@ -7,6 +7,7 @@
 #include "GenericItemizationStatics.h"
 #include "ItemManagement/ItemStackSettings.h"
 #include "GenericItemizationTags.h"
+#include "ItemManagement/ItemInstancer.h"
 
 UItemInventoryComponent::UItemInventoryComponent()
 {
@@ -16,6 +17,7 @@ UItemInventoryComponent::UItemInventoryComponent()
 	SetIsReplicatedByDefault(true);
 
 	ItemDropClass = AItemDrop::StaticClass();
+	ItemInstancer = CreateDefaultSubobject<UItemInstancer>("ItemInstancer");
 
 	bCachedIsNetSimulated = false;
 }
@@ -776,7 +778,6 @@ void UItemInventoryComponent::OnItemInstancePropertyValueChanged_Internal(const 
 				if (OldSocketInstancePtr && NewSocketInstancePtr && OldSocketInstancePtr->SocketId == NewSocketInstancePtr->SocketId)
 				{
 					// Check if the bIsEmpty flag has changed. If it has then we can skip doing a more expensive compare.
-					bool bEmptyHasChanged = false;
 					if (OldSocketInstancePtr->bIsEmpty != NewSocketInstancePtr->bIsEmpty)
 					{
 						ChangedSocketId = NewSocketInstancePtr->SocketId;

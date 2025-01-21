@@ -10,6 +10,7 @@
 #include "GenericItemizationInstanceTypes.h"
 #include "GenericItemizationInstancingFunctions.generated.h"
 
+class UItemInstancer;
 class UAffixPickFunction;
 
 /**
@@ -81,7 +82,7 @@ public:
 
 	/* Returns the ItemInstancingContext that will be passed into the Item Instancing Process to give context to that functionality around the Item being instanced. */
 	UFUNCTION(BlueprintNativeEvent)
-	bool BuildItemInstancingContext(const UItemDropperComponent * ItemDropperComponent, const FInstancedStruct & UserContextData, FInstancedStruct & OutItemInstancingContext);
+	bool BuildItemInstancingContext(const UItemInstancer* ItemInstancer, const FInstancedStruct& UserContextData, FInstancedStruct& OutItemInstancingContext);
 
 };
 
