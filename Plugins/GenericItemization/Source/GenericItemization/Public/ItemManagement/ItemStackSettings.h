@@ -12,7 +12,7 @@
  * Describes the requirements that Items must meet in order to successfully stack.
  */
 USTRUCT(BlueprintType)
-struct FItemStackingRequirements
+struct GENERICITEMIZATION_API FItemStackingRequirements
 {
     GENERATED_BODY()
 
@@ -46,7 +46,7 @@ public:
  * Stackable Items must originate from the same ItemDefinition.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), Blueprintable, Abstract)
-class UItemStackSettings : public UObject
+class GENERICITEMIZATION_API UItemStackSettings : public UObject
 {
 	GENERATED_BODY()
 

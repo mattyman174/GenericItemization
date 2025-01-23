@@ -20,7 +20,7 @@
  * An actual instance of an Affix that exists on an FItemInstance.
  */
 USTRUCT(BlueprintType)
-struct FAffixInstance
+struct GENERICITEMIZATION_API FAffixInstance
 {
     GENERATED_BODY()
 
@@ -64,7 +64,7 @@ struct TStructOpsTypeTraits<FAffixInstance> : public TStructOpsTypeTraitsBase2<F
  * Contains information about the Context around which an ItemInstance is called to be generated.
  */
 USTRUCT(BlueprintType)
-struct FItemInstancingContext
+struct GENERICITEMIZATION_API FItemInstancingContext
 {
     GENERATED_BODY()
 
@@ -91,7 +91,7 @@ public:
  * Facilitates nesting an ItemInstance inside of another ItemInstance.
  */
 USTRUCT(BlueprintType)
-struct FItemSocketInstance
+struct GENERICITEMIZATION_API FItemSocketInstance
 {
     GENERATED_BODY()
 
@@ -133,7 +133,7 @@ protected:
  * An actual instance of an Item that was generated.
  */
 USTRUCT(BlueprintType)
-struct FItemInstance
+struct GENERICITEMIZATION_API FItemInstance
 {
     GENERATED_BODY()
 
@@ -246,7 +246,7 @@ private:
 };
 
 USTRUCT()
-struct FItemInstanceChange
+struct GENERICITEMIZATION_API FItemInstanceChange
 {
     GENERATED_BODY()
 
@@ -275,7 +275,7 @@ public:
  * Therefore this type should only be used by the FFastItemInstancesContainer type.
  */
 USTRUCT(BlueprintType)
-struct FFastItemInstance : public FFastArraySerializerItem
+struct GENERICITEMIZATION_API FFastItemInstance : public FFastArraySerializerItem
 {
     GENERATED_BODY()
 
@@ -328,7 +328,7 @@ private:
  * for (auto It = CreateConstIterator(); It; ++It) {}
  */
 USTRUCT(BlueprintType)
-struct FFastItemInstancesContainer : public FFastArraySerializer
+struct GENERICITEMIZATION_API FFastItemInstancesContainer : public FFastArraySerializer
 {
     GENERATED_BODY()
 

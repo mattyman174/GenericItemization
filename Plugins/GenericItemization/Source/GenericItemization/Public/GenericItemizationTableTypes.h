@@ -16,7 +16,7 @@
  * Simply facilitates the Instancing of FItemQualityRatioType.
  */
 USTRUCT(BlueprintType)
-struct FItemQualityRatioTypesTableEntry : public FTableRowBase
+struct GENERICITEMIZATION_API FItemQualityRatioTypesTableEntry : public FTableRowBase
 {
     GENERATED_BODY()
 
@@ -35,7 +35,7 @@ public:
  * Rows will be referenced from outside Sources into this table to know which Item Drop Tables they should select from when executing the Item Drop Process.
  */
 USTRUCT(BlueprintType)
-struct FItemDropTableCollectionEntry : public FTableRowBase
+struct GENERICITEMIZATION_API FItemDropTableCollectionEntry : public FTableRowBase
 {
     GENERATED_BODY()
 
@@ -66,7 +66,7 @@ public:
  * Simply facilitates the Instancing for FItemDefinition.
  */
 USTRUCT(BlueprintType)
-struct FItemDefinitionEntry : public FTableRowBase
+struct GENERICITEMIZATION_API FItemDefinitionEntry : public FTableRowBase
 {
     GENERATED_BODY()
 
@@ -85,7 +85,7 @@ public:
  * Simply facilitates the Instancing for FItemAffixCountRatioType.
  */
 USTRUCT(BlueprintType)
-struct FItemAffixCountRatiosTableEntry : public FTableRowBase
+struct GENERICITEMIZATION_API FItemAffixCountRatiosTableEntry : public FTableRowBase
 {
     GENERATED_BODY()
 
@@ -100,7 +100,7 @@ public:
  * Simply facilitates the Instancing for FAffixDefinition.
  */
 USTRUCT(BlueprintType)
-struct FAffixDefinitionEntry : public FTableRowBase
+struct GENERICITEMIZATION_API FAffixDefinitionEntry : public FTableRowBase
 {
     GENERATED_BODY()
 

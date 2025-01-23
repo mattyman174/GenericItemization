@@ -19,7 +19,7 @@ class UDataTable;
  * Base class for all Item Pick Functions.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), Abstract, Blueprintable)
-class UItemPickFunction : public UObject
+class GENERICITEMIZATION_API UItemPickFunction : public UObject
 {
 	GENERATED_BODY()
 
@@ -39,7 +39,7 @@ public:
  * Pick Function type when used with Item Drop Table Collections.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), Blueprintable, BlueprintType)
-class UItemDropTableCollectionPickFunction : public UItemPickFunction
+class GENERICITEMIZATION_API UItemDropTableCollectionPickFunction : public UItemPickFunction
 {
 	GENERATED_BODY()
 
@@ -66,7 +66,7 @@ protected:
  * Pick Function type when used with Item Definition Collections.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), Blueprintable, BlueprintType)
-class UItemDefinitionCollectionPickFunction : public UItemPickFunction
+class GENERICITEMIZATION_API UItemDefinitionCollectionPickFunction : public UItemPickFunction
 {
 	GENERATED_BODY()
 
@@ -93,7 +93,7 @@ protected:
  * Base class for all Affix Pick Functions.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), Abstract, Blueprintable)
-class UAffixPickFunction : public UObject
+class GENERICITEMIZATION_API UAffixPickFunction : public UObject
 {
 	GENERATED_BODY()
 

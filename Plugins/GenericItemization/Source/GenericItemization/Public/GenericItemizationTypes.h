@@ -23,7 +23,7 @@ class UItemSocketSettings;
  * 
  */
 USTRUCT(BlueprintType)
-struct FItemDropTableMutator
+struct GENERICITEMIZATION_API FItemDropTableMutator
 {
     GENERATED_BODY()
 
@@ -38,7 +38,7 @@ public:
  * 
  */
 USTRUCT(BlueprintType)
-struct FItemQualityTypeBonuses
+struct GENERICITEMIZATION_API FItemQualityTypeBonuses
 {
     GENERATED_BODY()
 
@@ -61,7 +61,7 @@ public:
  * Represents the Ratio that a particular Item Quality Type can be selected for during the Item Instancing Process.
  */
 USTRUCT(BlueprintType)
-struct FItemQualityRatioType
+struct GENERICITEMIZATION_API FItemQualityRatioType
 {
     GENERATED_BODY()
 
@@ -88,7 +88,7 @@ public:
  * Simply facilitates the instancing of different derived types as entries in a Drop Table with a chance to be selected.
  */
 USTRUCT(BlueprintType)
-struct FItemDropTableType
+struct GENERICITEMIZATION_API FItemDropTableType
 {
     GENERATED_BODY()
 
@@ -104,7 +104,7 @@ public:
  * Reference to a Row in a DataTable containing Item Drop Table Collection Entries.
  */
 USTRUCT(BlueprintType, meta = (DisplayName = "Item Drop Table Collection"))
-struct FItemDropTableCollectionRow : public FItemDropTableType
+struct GENERICITEMIZATION_API FItemDropTableCollectionRow : public FItemDropTableType
 {
     GENERATED_BODY()
 
@@ -130,7 +130,7 @@ public:
  * Reference to a Row in a DataTable containing an Item Definition Entry.
  */
 USTRUCT(BlueprintType, meta = (DisplayName = "Item Definition"))
-struct FItemDefinitionRow : public FItemDropTableType
+struct GENERICITEMIZATION_API FItemDefinitionRow : public FItemDropTableType
 {
     GENERATED_BODY()
 
@@ -146,7 +146,7 @@ public:
  * Base for all Item Pick Requirement types.
  */
 USTRUCT()
-struct FItemPickRequirements
+struct GENERICITEMIZATION_API FItemPickRequirements
 {
     GENERATED_BODY()
 
@@ -158,7 +158,7 @@ public:
  * The specific Pick Requirements for Item Drop Table Collections.
  */
 USTRUCT()
-struct FItemDropTableCollectionPickRequirements
+struct GENERICITEMIZATION_API FItemDropTableCollectionPickRequirements
 {
     GENERATED_BODY()
 
@@ -170,7 +170,7 @@ public:
  * The specific Pick Requirements for Items selected from an Item Definition Collection.
  */
 USTRUCT(BlueprintType)
-struct FItemDefinitionCollectionPickRequirements : public FItemPickRequirements
+struct GENERICITEMIZATION_API FItemDefinitionCollectionPickRequirements : public FItemPickRequirements
 {
     GENERATED_BODY()
 
@@ -190,7 +190,7 @@ public:
  * Contains the definitions of actual Items.
  */
 USTRUCT(BlueprintType)
-struct FItemDefinitionCollection : public FItemDropTableType
+struct GENERICITEMIZATION_API FItemDefinitionCollection : public FItemDropTableType
 {
     GENERATED_BODY()
 
@@ -213,7 +213,7 @@ public:
 };
 
 USTRUCT(BlueprintType)
-struct FItemDefinitionUserData
+struct GENERICITEMIZATION_API FItemDefinitionUserData
 {
     GENERATED_BODY()
 
@@ -232,7 +232,7 @@ public:
  * All static data that defines what an individual ItemInstance is.
  */
 USTRUCT(BlueprintType)
-struct FItemDefinition
+struct GENERICITEMIZATION_API FItemDefinition
 {
     GENERATED_BODY()
 
@@ -344,7 +344,7 @@ public:
  * Represents the Ratio that a particular  Type can be selected for during the Item Instancing Process.
  */
 USTRUCT(BlueprintType)
-struct FItemAffixCountRatioType
+struct GENERICITEMIZATION_API FItemAffixCountRatioType
 {
     GENERATED_BODY()
 
@@ -368,7 +368,7 @@ public:
  * How a particular Affix changes attributes when applied and to what degree.
  */
 USTRUCT(BlueprintType)
-struct FAffixModifier
+struct GENERICITEMIZATION_API FAffixModifier
 {
     GENERATED_BODY()
 
@@ -396,7 +396,7 @@ public:
  * All static data that defines what an individual Affix is.
  */
 USTRUCT(BlueprintType)
-struct FAffixDefinition
+struct GENERICITEMIZATION_API FAffixDefinition
 {
     GENERATED_BODY()
 

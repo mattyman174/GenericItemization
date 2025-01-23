@@ -17,7 +17,7 @@ class UAffixPickFunction;
  * Class that manages calculating certain attributes of an ItemInstance.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), BlueprintType, Blueprintable)
-class UItemInstancingFunction : public UObject
+class GENERICITEMIZATION_API UItemInstancingFunction : public UObject
 {
 	GENERATED_BODY()
 
@@ -74,7 +74,7 @@ protected:
  * For interpretation elsewhere in the Item Instancing Process or other external systems.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), BlueprintType, Blueprintable)
-class UItemInstancingContextFunction : public UObject
+class GENERICITEMIZATION_API UItemInstancingContextFunction : public UObject
 {
 	GENERATED_BODY()
 

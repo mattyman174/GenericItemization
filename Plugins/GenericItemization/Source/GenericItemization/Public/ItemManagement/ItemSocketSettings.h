@@ -13,7 +13,7 @@
  * Defines a Socket that ItemInstances can be placed into.
  */
 USTRUCT(BlueprintType)
-struct FItemSocketDefinition
+struct GENERICITEMIZATION_API FItemSocketDefinition
 {
     GENERATED_BODY()
 
@@ -40,7 +40,7 @@ public:
  * Describes what Sockets an ItemInstance will have.
  */
 UCLASS(ClassGroup = ("Generic Itemization"), Blueprintable, Abstract)
-class UItemSocketSettings : public UObject
+class GENERICITEMIZATION_API UItemSocketSettings : public UObject
 {
 	GENERATED_BODY()
 

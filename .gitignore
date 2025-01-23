@@ -78,3 +78,7 @@ DerivedDataCache/*
 
 .idea
 
+*.user
+*.dll
+*.pdb
+*.modules
