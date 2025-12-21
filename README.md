@@ -13,7 +13,7 @@ If you find the Generic Itemization Plugin useful to you, please [consider makin
 You can find my contact information on my website:
 [https://fissureentertainment.com/](https://fissureentertainment.com/)
 
-**Latest compiled against: UE 5.5.3**
+**Latest compiled against: UE 5.7.1**
 
 [**YouTube Videos**](https://www.youtube.com/playlist?list=PLFgj8T5yppmdJdLv7CVG-narFbJ5bS1Pi)
 
@@ -820,7 +820,7 @@ If you found the Generic Itemization Plugin useful to you, please [consider maki
 You can find my contact information on my website:
 [https://fissureentertainment.com/](https://fissureentertainment.com/)
 
-**Latest compiled against: UE 5.4.0**
+**Latest compiled against: UE 5.7.1**
 
 [**YouTube Videos**](https://www.youtube.com/playlist?list=PLFgj8T5yppmdJdLv7CVG-narFbJ5bS1Pi)
 
