@@ -32,7 +32,7 @@ public:
 
     /* The value of this Mutator. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float Value;
+    float Value = 0.f;
 };
 
 /**

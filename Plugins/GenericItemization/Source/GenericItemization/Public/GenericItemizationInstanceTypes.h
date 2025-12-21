@@ -104,15 +104,15 @@ public:
 
     /* The unique id of this SocketInstance. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FGuid SocketId;
+    FGuid SocketId = FGuid();
 
     /* Whether or not this SocketInstance currently has a socketed Item. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bIsEmpty;
+    bool bIsEmpty = false;
 
     /* Handle of the actual SocketDefinition, this is serialized instead of the SocketDefinition itself. */
     UPROPERTY()
-    FGuid SocketDefinitionHandle;
+    FGuid SocketDefinitionHandle = FGuid();
 
     const TInstancedStruct<FItemSocketDefinition>& GetSocketDefinition() const { return SocketDefinition; }
     const FConstStructView GetSocketedItem() const;
@@ -143,7 +143,7 @@ public:
 
     /* The Unique Id of the Item. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    FGuid ItemId;
+    FGuid ItemId = FGuid();
 
     /* The authoritative seed that was generated, when this Item was created during the Item Instancing Process. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)

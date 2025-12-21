@@ -325,7 +325,7 @@ bool UItemInventoryComponent::StackItemFromInventory(UItemInventoryComponent* It
 
 	if (bPerformDeduction)
 	{
-		ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
+		ItemToStackFromInventory->ItemInstances.ModifyItemInstanceWithChangeDescriptor<FItemInstance>(
 			ItemToStackFrom,
 			GenericItemizationGameplayTags::ItemInstanceChange_StackCount, 
 			{ GET_MEMBER_NAME_CHECKED(FItemInstance, StackCount) },
